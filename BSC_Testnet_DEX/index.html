@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DEX 测试工具 · BSC Testnet</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0c10;--surf:#111318;--card:#161a22;--b1:#1e2530;--b2:#2a3240;
+  --acc:#f0b90b;--acc2:#e8a800;--grn:#0ecb81;--red:#f6465d;--blu:#3fc1c9;--pur:#a78bfa;
+  --tx:#e8eaf0;--tx2:#7a8499;--tx3:#4a5568;
+  --mono:'Space Mono',monospace;--sans:'DM Sans',sans-serif;
+  --r:12px;--rs:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--tx);font-family:var(--sans);min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(240,185,11,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(240,185,11,.025) 1px,transparent 1px);
+  background-size:44px 44px;pointer-events:none;z-index:0;}
+
+/* Header */
+header{position:sticky;top:0;z-index:100;background:rgba(10,12,16,.96);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--b1);height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;}
+.logo{font-family:var(--mono);font-size:13px;color:var(--acc);display:flex;align-items:center;gap:8px;}
+.dot{width:7px;height:7px;background:var(--acc);border-radius:50%;animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.hright{display:flex;align-items:center;gap:10px;}
+.netbadge{font-family:var(--mono);font-size:10px;padding:3px 9px;background:rgba(240,185,11,.1);border:1px solid rgba(240,185,11,.3);border-radius:20px;color:var(--acc);}
+#btnConn{font-family:var(--mono);font-size:11px;padding:7px 14px;background:var(--acc);color:#000;border:none;border-radius:var(--rs);cursor:pointer;font-weight:700;transition:all .15s;}
+#btnConn:hover{background:var(--acc2);}
+#btnConn.ok{background:rgba(14,203,129,.15);border:1px solid rgba(14,203,129,.4);color:var(--grn);}
+
+.app{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:20px 14px 80px;}
+
+/* Wallet strip */
+#wstrip{display:none;background:var(--card);border:1px solid var(--b1);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;}
+#wstrip.show{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.wi .wl{font-size:10px;color:var(--tx3);font-family:var(--mono);margin-bottom:2px;}
+.wi .wv{color:var(--grn);font-size:12px;font-family:var(--mono);word-break:break-all;}
+.wi.full{grid-column:1/-1;}
+.wi.full .wv{color:var(--acc);}
+
+/* Tabs */
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--surf);border:1px solid var(--b1);border-radius:var(--r);padding:4px;margin-bottom:16px;}
+.tab{font-family:var(--mono);font-size:11px;padding:8px 4px;text-align:center;cursor:pointer;border-radius:var(--rs);color:var(--tx2);border:none;background:none;transition:all .15s;}
+.tab:hover{color:var(--tx);background:var(--b1);}
+.tab.on{background:var(--acc);color:#000;font-weight:700;}
+
+/* Panels */
+.panel{background:var(--card);border:1px solid var(--b1);border-radius:var(--r);padding:20px;display:none;}
+.panel.on{display:block;}
+.ptitle{font-family:var(--mono);font-size:12px;color:var(--tx2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.ptitle::before{content:'';width:3px;height:13px;background:var(--acc);border-radius:2px;flex-shrink:0;}
+
+/* ══ Token Picker ══ */
+.tpicker{margin-bottom:14px;}
+.tpicker-label{font-family:var(--mono);font-size:11px;color:var(--tx2);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+.tpicker-label .balbtn{color:var(--grn);cursor:pointer;}
+.tpicker-label .balbtn:hover{color:var(--acc);}
+.token-btns{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;}
+.tbtn{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;padding:6px 10px;border:1px solid var(--b2);border-radius:20px;background:var(--surf);color:var(--tx2);cursor:pointer;transition:all .15s;}
+.tbtn:hover{border-color:var(--acc);color:var(--acc);}
+.tbtn.sel{border-color:var(--acc);background:rgba(240,185,11,.1);color:var(--acc);}
+.tbtn.custom-active{border-color:var(--blu);background:rgba(63,193,201,.1);color:var(--blu);}
+.ticon{width:20px;height:20px;border-radius:50%;object-fit:cover;flex-shrink:0;}
+.ticon-placeholder{width:20px;height:20px;border-radius:50%;background:var(--b2);display:flex;align-items:center;justify-content:center;font-size:9px;font-family:var(--mono);color:var(--tx3);flex-shrink:0;}
+.custom-addr-row{display:flex;gap:6px;align-items:center;}
+.custom-addr-row input{flex:1;padding:8px 10px;font-size:12px;background:var(--surf);border:1px solid var(--b2);border-radius:var(--rs);color:var(--tx);font-family:var(--mono);outline:none;transition:border .15s;}
+.custom-addr-row input:focus{border-color:var(--blu);}
+.custom-addr-row input::placeholder{color:var(--tx3);}
+.search-btn{font-family:var(--mono);font-size:11px;padding:8px 12px;border:1px solid var(--blu);border-radius:var(--rs);background:rgba(63,193,201,.1);color:var(--blu);cursor:pointer;white-space:nowrap;transition:all .15s;}
+.search-btn:hover{background:rgba(63,193,201,.2);}
+.token-result{margin-top:6px;font-family:var(--mono);font-size:11px;padding:6px 10px;border-radius:var(--rs);display:none;}
+.token-result.ok{display:block;background:rgba(14,203,129,.1);border:1px solid rgba(14,203,129,.3);color:var(--grn);}
+.token-result.bad{display:block;background:rgba(246,70,93,.1);border:1px solid rgba(246,70,93,.3);color:var(--red);}
+
+/* Approve strip */
+.astrip{display:none;align-items:center;gap:10px;margin-top:7px;padding:8px 11px;background:var(--surf);border:1px solid var(--b2);border-radius:var(--rs);}
+.astrip.show{display:flex;}
+.amsg{flex:1;font-family:var(--mono);font-size:11px;}
+.amsg.ok{color:var(--grn);}
+.amsg.bad{color:var(--red);}
+.abtn{font-family:var(--mono);font-size:11px;font-weight:700;padding:6px 12px;border:none;border-radius:var(--rs);cursor:pointer;white-space:nowrap;transition:all .15s;}
+.abtn.go{background:var(--acc);color:#000;}
+.abtn.go:hover{background:var(--acc2);}
+.abtn.done{background:rgba(14,203,129,.15);border:1px solid rgba(14,203,129,.4);color:var(--grn);cursor:default;}
+
+/* Amount input */
+.ig{margin-bottom:14px;}
+.ilabel{display:flex;justify-content:space-between;font-size:11px;color:var(--tx2);font-family:var(--mono);margin-bottom:5px;}
+.imx{position:relative;}
+.imx input{width:100%;padding:10px 52px 10px 12px;font-size:16px;background:var(--surf);border:1px solid var(--b2);border-radius:var(--rs);color:var(--tx);font-family:var(--sans);outline:none;transition:border .15s;-moz-appearance:textfield;}
+.imx input::-webkit-inner-spin-button{display:none;}
+.imx input:focus{border-color:var(--acc);}
+.imx input::placeholder{color:var(--tx3);font-size:13px;}
+.imx input[readonly]{color:var(--tx2);cursor:default;}
+.mxb{position:absolute;right:9px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:10px;color:var(--acc);cursor:pointer;border:1px solid rgba(240,185,11,.3);background:rgba(240,185,11,.08);padding:3px 7px;border-radius:4px;font-weight:700;}
+.mxb:hover{background:rgba(240,185,11,.18);}
+
+/* Sep */
+.sep{text-align:center;font-size:20px;color:var(--tx3);margin:4px 0;cursor:pointer;transition:color .15s;}
+.sep:hover{color:var(--acc);}
+.nosep{text-align:center;font-size:20px;color:var(--tx3);margin:4px 0;}
+
+/* Info box */
+.ibox{background:var(--surf);border:1px solid var(--b1);border-radius:var(--rs);padding:11px;margin-bottom:13px;display:none;}
+.ibox.show{display:block;}
+.irow{display:flex;justify-content:space-between;font-size:11px;color:var(--tx2);padding:3px 0;font-family:var(--mono);gap:8px;}
+.iv{color:var(--tx);text-align:right;}
+.iv.g{color:var(--grn);}
+.iv.y{color:var(--acc);}
+.iv.p{color:var(--pur);}
+
+/* Fee toggle */
+.ftrow{display:flex;align-items:center;gap:10px;margin-bottom:13px;padding:9px 12px;background:var(--surf);border:1px solid var(--b2);border-radius:var(--rs);}
+.ftlabel{font-family:var(--mono);font-size:11px;color:var(--tx2);flex:1;}
+.ftlabel b{color:var(--pur);}
+.tog{position:relative;width:38px;height:21px;flex-shrink:0;}
+.tog input{opacity:0;width:0;height:0;}
+.tsl{position:absolute;inset:0;background:var(--b2);border-radius:21px;cursor:pointer;transition:.25s;}
+.tsl:before{content:'';position:absolute;width:15px;height:15px;left:3px;bottom:3px;background:var(--tx3);border-radius:50%;transition:.25s;}
+.tog input:checked+.tsl{background:var(--pur);}
+.tog input:checked+.tsl:before{transform:translateX(17px);background:#fff;}
+
+/* Slippage */
+.slrow{display:flex;gap:6px;margin-bottom:13px;align-items:center;flex-wrap:wrap;}
+.sll{font-size:11px;color:var(--tx2);font-family:var(--mono);white-space:nowrap;}
+.slb{font-family:var(--mono);font-size:11px;padding:5px 9px;border:1px solid var(--b2);border-radius:6px;background:var(--surf);color:var(--tx2);cursor:pointer;transition:all .15s;}
+.slb.on,.slb:hover{border-color:var(--acc);color:var(--acc);background:rgba(240,185,11,.08);}
+.slci{width:62px!important;padding:5px 7px!important;font-size:11px!important;font-family:var(--mono)!important;background:var(--surf)!important;border:1px solid var(--b2)!important;border-radius:6px!important;color:var(--tx)!important;outline:none!important;}
+
+/* Warn */
+.warn{background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);border-radius:var(--rs);padding:8px 12px;margin-bottom:13px;font-size:11px;font-family:var(--mono);color:var(--pur);line-height:1.7;}
+
+/* Buttons */
+.mainbtn{width:100%;padding:12px;font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.05em;border:none;border-radius:var(--rs);cursor:pointer;transition:all .15s;background:var(--acc);color:#000;margin-top:4px;}
+.mainbtn:hover{background:var(--acc2);transform:translateY(-1px);}
+.mainbtn.red{background:var(--red);color:#fff;}
+.mainbtn.red:hover{background:#d93651;}
+.secbtn{padding:9px 14px;font-family:var(--mono);font-size:11px;font-weight:700;border:1px solid var(--blu);border-radius:var(--rs);cursor:pointer;background:rgba(63,193,201,.1);color:var(--blu);transition:all .15s;}
+.secbtn:hover{background:rgba(63,193,201,.2);}
+
+/* Log */
+.logbox{background:var(--surf);border:1px solid var(--b1);border-radius:var(--rs);padding:9px;margin-top:12px;max-height:160px;overflow-y:auto;display:none;}
+.logbox.show{display:block;}
+.le{font-family:var(--mono);font-size:11px;padding:3px 0;border-bottom:1px solid var(--b1);display:flex;gap:8px;}
+.le:last-child{border-bottom:none;}
+.lt{color:var(--tx3);min-width:54px;flex-shrink:0;}
+.lm{color:var(--tx2);word-break:break-all;}
+.lm.ok{color:var(--grn);}
+.lm.err{color:var(--red);}
+.lm.pend{color:var(--acc);}
+
+/* LP Position cards */
+.lp-section{margin-bottom:16px;}
+.lp-scan-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.lp-scan-title{font-family:var(--mono);font-size:11px;color:var(--tx2);}
+.lp-card{background:var(--surf);border:1px solid var(--b2);border-radius:var(--rs);padding:14px;margin-bottom:10px;}
+.lp-pair{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.lp-icons{display:flex;margin-right:4px;}
+.lp-icons .ticon,.lp-icons .ticon-placeholder{margin-right:-6px;border:2px solid var(--surf);}
+.lp-name{font-family:var(--mono);font-size:13px;color:var(--acc);font-weight:700;}
+.lp-badge{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:20px;background:rgba(240,185,11,.1);border:1px solid rgba(240,185,11,.3);color:var(--acc);}
+.lp-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;}
+.lp-stat{background:var(--card);border-radius:6px;padding:7px 10px;}
+.lp-stat-label{font-size:10px;font-family:var(--mono);color:var(--tx3);margin-bottom:2px;}
+.lp-stat-val{font-size:12px;font-family:var(--mono);color:var(--grn);}
+.lp-actions{display:flex;gap:8px;}
+.lp-act-btn{flex:1;padding:8px;font-family:var(--mono);font-size:11px;font-weight:700;border:none;border-radius:var(--rs);cursor:pointer;transition:all .15s;}
+.lp-act-btn.add{background:rgba(240,185,11,.15);border:1px solid rgba(240,185,11,.4);color:var(--acc);}
+.lp-act-btn.rem{background:rgba(246,70,93,.12);border:1px solid rgba(246,70,93,.3);color:var(--red);}
+.lp-act-btn:hover{transform:translateY(-1px);}
+.lp-empty{text-align:center;padding:24px;font-family:var(--mono);font-size:12px;color:var(--tx3);}
+.lp-scanning{text-align:center;padding:20px;font-family:var(--mono);font-size:11px;color:var(--acc);animation:blink 1.5s infinite;}
+
+/* Remove modal overlay */
+.rem-form{background:var(--card);border:1px solid var(--acc);border-radius:var(--r);padding:16px;margin-top:12px;display:none;}
+.rem-form.show{display:block;}
+.rem-form-title{font-family:var(--mono);font-size:12px;color:var(--acc);margin-bottom:12px;}
+hr.dv{border:none;border-top:1px solid var(--b1);margin:10px 0;}
+
+/* Pool card */
+.pcard{background:var(--surf);border:1px solid var(--b2);border-radius:var(--rs);padding:14px;margin-bottom:12px;display:none;}
+.pcard.show{display:block;}
+.pname{font-family:var(--mono);font-size:13px;color:var(--acc);font-weight:700;margin-bottom:9px;}
+.txlink{font-family:var(--mono);font-size:11px;color:var(--blu);text-decoration:none;word-break:break-all;}
+.txlink:hover{text-decoration:underline;}
+
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px;}
+/* PandaTool brand */
+.brand-link-hdr{font-family:var(--mono);font-size:10px;color:var(--acc);text-decoration:none;padding:3px 7px;border:1px solid rgba(240,185,11,.25);border-radius:20px;transition:all .15s;}
+.brand-link-hdr:hover{background:rgba(240,185,11,.1);}
+.pt-footer{text-align:center;padding:18px 0 28px;font-family:var(--mono);font-size:11px;color:var(--tx3);border-top:1px solid var(--b1);margin-top:20px;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;position:relative;z-index:1;}
+.pt-flink{color:var(--acc);text-decoration:none;transition:color .15s;}
+.pt-flink:hover{color:var(--acc2);text-shadow:0 0 8px rgba(240,185,11,.4);}
+.pt-sep{color:var(--b2);}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <span class="dot"></span>
+    <span>🐼 PandaTool DEX</span>
+    <span style="color:var(--tx3);font-size:10px;font-weight:400"> · BSC TESTNET</span>
+  </div>
+  <div class="hright">
+    <a href="https://pandatool.org/" target="_blank" rel="noopener" class="brand-link-hdr">官网</a>
+    <a href="https://t.me/pandatool" target="_blank" rel="noopener" class="brand-link-hdr">TG</a>
+    <span class="netbadge">Chain ID: 97</span>
+    <button id="btnConn" onclick="connectWallet()">连接钱包</button>
+  </div>
+</header>
+
+<div class="app">
+<div id="wstrip">
+  <div class="wi full"><div class="wl">钱包地址</div><div class="wv" id="wAddr">—</div></div>
+  <div class="wi"><div class="wl">tBNB 余额</div><div class="wv" id="wBNB">—</div></div>
+  <div class="wi"><div class="wl">Router（官方测试网）</div><div class="wv" style="color:var(--blu);font-size:10px">0xD99D1c33...550D1</div></div>
+</div>
+
+
+<div class="tabs">
+  <button class="tab on" onclick="goTab('swap')">SWAP</button>
+  <button class="tab"    onclick="goTab('create')">创建流动性</button>
+  <button class="tab"    onclick="goTab('manage')">管理流动性</button>
+</div>
+
+<!-- ══════════════════════════════════
+     SWAP
+══════════════════════════════════ -->
+<div class="panel on" id="panel-swap">
+  <div class="ptitle">代币兑换</div>
+
+  <div class="ftrow">
+    <span class="ftlabel">启用 <b>Fee-on-Transfer</b>（有税代币必须开）</span>
+    <label class="tog"><input type="checkbox" id="feeOn" checked><span class="tsl"></span></label>
+  </div>
+  <div class="warn">⚠️ 有税代币请开启 Fee-on-Transfer，并将滑点设置 ≥ 买入税+卖出税，否则交易会失败。</div>
+
+  <div id="swapInPicker"></div>
+  <div class="ig">
+    <div class="ilabel">
+      <span>支付数量</span>
+      <span style="color:var(--grn);font-family:var(--mono);cursor:pointer" id="swapInBalLbl" onclick="maxSwapIn()">余额: —</span>
+    </div>
+    <div class="imx">
+      <input type="number" id="swapInAmt" placeholder="0.0" oninput="schedCalc()">
+      <span class="mxb" onclick="maxSwapIn()">MAX</span>
+    </div>
+  </div>
+
+  <div class="sep" onclick="flipSwap()">⇅ 切换</div>
+
+  <div id="swapOutPicker" style="margin-top:8px"></div>
+  <div class="ig" style="margin-top:4px">
+    <div class="ilabel">
+      <span>预计获得（税前实时报价）</span>
+      <span style="color:var(--tx2);font-family:var(--mono);font-size:11px" id="swapOutBalLbl">余额: —</span>
+    </div>
+    <div class="imx">
+      <input type="number" id="swapOutAmt" readonly placeholder="填写支付数量后自动计算">
+    </div>
+  </div>
+
+  <div id="swapAlert" style="display:none;background:rgba(246,70,93,.1);border:1px solid rgba(246,70,93,.3);border-radius:var(--rs);padding:7px 12px;margin-bottom:10px;font-size:11px;font-family:var(--mono);color:var(--red)"></div>
+
+  <div class="slrow">
+    <span class="sll">滑点：</span>
+    <button class="slb" onclick="setSl(this,3)">3%</button>
+    <button class="slb" onclick="setSl(this,5)">5%</button>
+    <button class="slb on" onclick="setSl(this,12)">12%</button>
+    <button class="slb" onclick="setSl(this,20)">20%</button>
+    <input type="number" class="slci" id="slCust" placeholder="自定义" oninput="setSl(null,+this.value)">
+    <span class="sll">%</span>
+  </div>
+
+  <div class="ibox" id="swapBox">
+    <div class="irow"><span>最少获得 amountOutMin</span><span class="iv g" id="swapMin">—</span></div>
+    <div class="irow"><span>路由路径</span><span class="iv" id="swapRoute">—</span></div>
+    <div class="irow"><span>调用方法</span><span class="iv p" id="swapMethod">—</span></div>
+  </div>
+
+  <div class="ibox show">
+    <div class="irow" style="margin-bottom:7px"><span style="color:var(--pur)">税后到账估算（选填税率）</span></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span class="sll">买入税</span>
+      <input type="number" id="buyTax" placeholder="0" style="width:62px;padding:5px 7px;font-size:12px;font-family:var(--mono);background:var(--surf);border:1px solid var(--b2);border-radius:6px;color:var(--tx);outline:none">
+      <span class="sll">%  卖出税</span>
+      <input type="number" id="sellTax" placeholder="0" style="width:62px;padding:5px 7px;font-size:12px;font-family:var(--mono);background:var(--surf);border:1px solid var(--b2);border-radius:6px;color:var(--tx);outline:none">
+      <span class="sll">%</span>
+    </div>
+    <div class="irow" style="margin-top:7px"><span>税后估算到账</span><span class="iv p" id="taxEst">填税率后显示</span></div>
+  </div>
+
+  <button class="mainbtn" id="swapBtn" onclick="doSwap()">执行兑换</button>
+  <div class="logbox" id="swapLog"></div>
+</div>
+
+<!-- ══════════════════════════════════
+     CREATE LIQUIDITY
+══════════════════════════════════ -->
+<div class="panel" id="panel-create">
+  <div class="ptitle">创建流动性</div>
+  <div class="warn">⚠️ 创建/添加流动性前，请先确认代币已完成 Approve。若是新池子，B 数量需要你手动输入。</div>
+
+  <div id="liqInPicker"></div>
+  <div class="ig">
+    <div class="ilabel">
+      <span>代币 A 数量</span>
+      <span style="color:var(--grn);font-family:var(--mono);cursor:pointer" id="liqABalLbl" onclick="maxLiq('A')">余额: —</span>
+    </div>
+    <div class="imx">
+      <input type="number" id="liqAmtA" placeholder="0.0" oninput="calcLiqB()">
+      <span class="mxb" onclick="maxLiq('A')">MAX</span>
+    </div>
+  </div>
+
+  <div class="nosep">+</div>
+
+  <div id="liqOutPicker" style="margin-top:8px"></div>
+  <div class="ig" style="margin-top:4px">
+    <div class="ilabel">
+      <span>代币 B 数量</span>
+      <span style="color:var(--grn);font-family:var(--mono);font-size:11px;cursor:pointer" id="liqBBalLbl" onclick="maxLiq('B')">余额: —</span>
+    </div>
+    <div class="imx">
+      <input type="number" id="liqAmtB" placeholder="0.0" oninput="calcLiqB()">
+      <span class="mxb" onclick="maxLiq('B')">MAX</span>
+    </div>
+    <div style="font-size:10px;color:var(--tx3);font-family:var(--mono);margin-top:4px" id="liqBHint">填 A 数量后按比例自动计算</div>
+  </div>
+
+  <div class="ibox" id="liqBox">
+    <div class="irow"><span>池子当前比率</span><span class="iv" id="liqRatio">—</span></div>
+    <div class="irow"><span>LP 总量</span><span class="iv" id="liqTotal">—</span></div>
+    <div class="irow"><span>我持有 LP</span><span class="iv g" id="liqMine">—</span></div>
+    <div class="irow"><span>当前份额</span><span class="iv" id="liqShare">—</span></div>
+  </div>
+
+  <button class="mainbtn" id="liqBtn" onclick="doAddLiq()">添加流动性</button>
+  <div class="logbox" id="liqLog"></div>
+</div>
+
+<!-- ══════════════════════════════════
+     MANAGE LIQUIDITY
+══════════════════════════════════ -->
+<div class="panel" id="panel-manage">
+  <div class="ptitle">管理流动性</div>
+
+  <div class="lp-section">
+    <div class="lp-scan-bar">
+      <span class="lp-scan-title">我的流动性仓位</span>
+      <button class="secbtn" onclick="scanLP()">🔍 扫描我的 LP</button>
+    </div>
+    <div id="lpList"><div class="lp-empty">连接钱包后点击「扫描我的 LP」</div></div>
+  </div>
+
+  <hr class="dv" style="margin-bottom:14px">
+
+  <div class="rem-form" id="remForm">
+    <div class="rem-form-title" id="remFormTitle">移除流动性</div>
+    <div class="ig">
+      <div class="ilabel"><span>LP Token 地址</span></div>
+      <input type="text" id="remLPAddr" readonly style="padding:9px 12px;font-size:12px;background:var(--surf);border:1px solid var(--b2);border-radius:var(--rs);color:var(--tx2);font-family:var(--mono);width:100%;outline:none">
+    </div>
+    <div class="ibox show" id="remInfoBox">
+      <div class="irow"><span>我的 LP 余额</span><span class="iv g" id="remMyLP">—</span></div>
+      <div class="irow"><span>可拿回 A（税前）</span><span class="iv" id="remGetA">—</span></div>
+      <div class="irow"><span>可拿回 B（税前）</span><span class="iv" id="remGetB">—</span></div>
+    </div>
+    <div class="astrip" id="remLPStrip">
+      <span class="amsg" id="remLPMsg">—</span>
+      <button class="abtn go" id="remLPBtn" onclick="approveLP()">授权 LP</button>
+    </div>
+    <div class="ig" style="margin-top:10px">
+      <div class="ilabel"><span>移除比例</span></div>
+      <div style="display:flex;gap:7px;margin-bottom:7px">
+        <button class="slb" onclick="setRemPct(25)">25%</button>
+        <button class="slb" onclick="setRemPct(50)">50%</button>
+        <button class="slb" onclick="setRemPct(75)">75%</button>
+        <button class="slb" onclick="setRemPct(100)">100%</button>
+      </div>
+      <div class="imx"><input type="number" id="remPct" value="100" min="1" max="100"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="mainbtn red" style="margin-top:0" onclick="doRemove()">移除流动性</button>
+      <button class="mainbtn" style="margin-top:0;background:var(--surf);color:var(--tx2);border:1px solid var(--b2)" onclick="closeRemForm()">取消</button>
+    </div>
+    <div class="logbox" id="remLog"></div>
+  </div>
+
+  <hr class="dv" style="margin-bottom:14px">
+
+  <div class="ptitle" style="margin-bottom:12px">池子信息</div>
+  <div class="warn">可手动查询任意交易对；也可以直接从 LP 列表点击“追加流动性”跳转到创建页并自动带入两个代币。</div>
+
+  <div id="poolInPicker"></div>
+  <div id="poolOutPicker" style="margin-top:8px"></div>
+  <button class="mainbtn" onclick="queryPool()" style="margin-bottom:14px;margin-top:8px">查询池子</button>
+  <div class="pcard" id="piCard">
+    <div class="pname" id="piName">—</div>
+    <div class="irow"><span>Pair 地址</span><span class="iv" id="piAddr" style="font-size:10px;word-break:break-all;max-width:64%">—</span></div>
+    <hr class="dv">
+    <div class="irow"><span>储备 A</span><span class="iv g" id="piResA">—</span></div>
+    <div class="irow"><span>储备 B</span><span class="iv g" id="piResB">—</span></div>
+    <div class="irow"><span>A 单价（B计）</span><span class="iv y" id="piPrAB">—</span></div>
+    <div class="irow"><span>B 单价（A计）</span><span class="iv y" id="piPrBA">—</span></div>
+    <hr class="dv">
+    <div class="irow"><span>LP 总量</span><span class="iv" id="piTotal">—</span></div>
+    <div class="irow"><span>我的 LP</span><span class="iv g" id="piMine">—</span></div>
+    <div class="irow"><span>我的份额</span><span class="iv" id="piShare">—</span></div>
+  </div>
+  <div class="logbox" id="poolLog"></div>
+</div>
+
+</div><!-- /app -->
+
+<!-- PandaTool Footer -->
+<footer class="pt-footer">
+  <span>© 2025 <a href="https://pandatool.org/" target="_blank" rel="noopener" class="pt-flink">🐼 PandaTool</a></span>
+  <span class="pt-sep">·</span>
+  <a href="https://pandatool.org/" target="_blank" rel="noopener" class="pt-flink">官网</a>
+  <span class="pt-sep">·</span>
+  <a href="https://t.me/pandatool" target="_blank" rel="noopener" class="pt-flink">Telegram 社群</a>
+  <span class="pt-sep">·</span>
+  <span style="color:var(--tx3);font-size:10px">BSC Testnet · PancakeSwap V2</span>
+</footer>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════
+// PandaTool DEX — BSC Testnet | pandatool.org
+// https://t.me/pandatool
+// ═══════════════════════════════════════════════
+const _pt={id:'PandaTool',url:'pandatool.org'}; // DEX identity
+const ROUTER_ADDR  = '0xD99D1c33F9fC3444f8101754aBC46c52416550D1';
+const FACTORY_ADDR = '0x6725F303b657a9451d8BA641348b6761A6CC7a17';
+const WBNB_ADDR    = '0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd';
+const USDT_ADDR    = '0x66E972502A34A625828C544a1914E8D8cc2A9dE5';
+const RPC_URL      = 'https://data-seed-prebsc-1-s1.binance.org:8545';
+const EXPLORER     = 'https://testnet.bscscan.com/tx/';
+const CHAIN_ID     = 97;
+
+// 预设代币列表（null address = 原生 tBNB）
+const PRESET_TOKENS = [
+  { symbol:'tBNB', name:'BNB（原生）', address: null, decimals:18,
+    icon:'https://assets.coingecko.com/coins/images/825/small/bnb-icon2_2x.png' },
+  { symbol:'WBNB', name:'Wrapped BNB', address: WBNB_ADDR, decimals:18,
+    icon:'https://assets.coingecko.com/coins/images/825/small/bnb-icon2_2x.png' },
+  { symbol:'USDT', name:'Tether USD (测试)', address: USDT_ADDR, decimals:18,
+    icon:'https://assets.coingecko.com/coins/images/325/small/Tether.png' },
+];
+
+// LP 扫描常用 pair 列表（根据已部署的测试代币补充）
+const KNOWN_PAIRS = [
+  { a: null,       b: USDT_ADDR }, // tBNB/USDT
+  { a: WBNB_ADDR,  b: USDT_ADDR }, // WBNB/USDT
+];
+
+const ROUTER_ABI = [
+  'function getAmountsOut(uint,address[]) view returns(uint[])',
+  'function swapExactETHForTokens(uint,address[],address,uint) payable returns(uint[])',
+  'function swapExactTokensForETH(uint,uint,address[],address,uint) returns(uint[])',
+  'function swapExactTokensForTokens(uint,uint,address[],address,uint) returns(uint[])',
+  'function swapExactETHForTokensSupportingFeeOnTransferTokens(uint,address[],address,uint) payable',
+  'function swapExactTokensForETHSupportingFeeOnTransferTokens(uint,uint,address[],address,uint)',
+  'function swapExactTokensForTokensSupportingFeeOnTransferTokens(uint,uint,address[],address,uint)',
+  'function addLiquidityETH(address,uint,uint,uint,address,uint) payable returns(uint,uint,uint)',
+  'function addLiquidity(address,address,uint,uint,uint,uint,address,uint) returns(uint,uint,uint)',
+  'function removeLiquidityETH(address,uint,uint,uint,address,uint) returns(uint,uint)',
+  'function removeLiquidity(address,address,uint,uint,uint,address,uint) returns(uint,uint)',
+  'function removeLiquidityETHSupportingFeeOnTransferTokens(address,uint,uint,uint,address,uint) returns(uint)',
+];
+const FACTORY_ABI = ['function getPair(address,address) view returns(address)','function allPairsLength() view returns(uint)','function allPairs(uint) view returns(address)'];
+const PAIR_ABI    = ['function getReserves() view returns(uint112,uint112,uint32)','function token0() view returns(address)','function token1() view returns(address)','function totalSupply() view returns(uint)','function balanceOf(address) view returns(uint)'];
+const ERC20_ABI   = ['function name() view returns(string)','function symbol() view returns(string)','function decimals() view returns(uint8)','function totalSupply() view returns(uint)','function balanceOf(address) view returns(uint)','function allowance(address,address) view returns(uint)','function approve(address,uint) returns(bool)'];
+
+// ═══════════════════════════════════════════════
+// STATE — PandaTool Nile DEX v1.0
+// ═══════════════════════════════════════════════
+let signer = null, account = null, slip = 12;
+const cache = {}; // token info cache
+// Per-picker state: { selectedPreset, customAddr, resolvedAddr, resolvedInfo }
+const pickers = {};
+// Current LP being removed
+let activeRemLP = null;
+
+const MAX = ethers.constants.MaxUint256;
+
+function rpc(){ return new ethers.providers.JsonRpcProvider(RPC_URL, {name:'bnbt',chainId:CHAIN_ID}); }
+function rc(addr,abi){ return new ethers.Contract(addr,abi,rpc()); }
+function wc(addr,abi){ if(!signer) throw new Error('未连接'); return new ethers.Contract(addr,abi,signer); }
+
+// ═══════════════════════════════════════════════
+// WALLET
+// ═══════════════════════════════════════════════
+async function connectWallet(){
+  if(!window.ethereum) return alert('请先安装 MetaMask 或其他 Web3 钱包插件！');
+  try{
+    await window.ethereum.request({method:'eth_requestAccounts'});
+    try{ await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x61'}]}); }
+    catch(e){ if(e.code===4902) await window.ethereum.request({method:'wallet_addEthereumChain',params:[{
+      chainId:'0x61',chainName:'BSC Testnet',
+      nativeCurrency:{name:'tBNB',symbol:'tBNB',decimals:18},
+      rpcUrls:[RPC_URL],blockExplorerUrls:['https://testnet.bscscan.com']
+    }]}); }
+    const p = new ethers.providers.Web3Provider(window.ethereum,'any');
+    await p.ready;
+    const net = await p.getNetwork();
+    if(net.chainId!==CHAIN_ID) return alert(`当前网络 chainId=${net.chainId}，请切换到 BSC 测试网（Chain ID: 97）后刷新页面`);
+    signer  = p.getSigner();
+    account = await signer.getAddress();
+    const bnb = +ethers.utils.formatEther(await rpc().getBalance(account));
+    document.getElementById('btnConn').textContent = account.slice(0,6)+'...'+account.slice(-4);
+    document.getElementById('btnConn').className   = 'ok';
+    document.getElementById('wstrip').className    = 'show';
+    document.getElementById('wAddr').textContent   = account;
+    document.getElementById('wBNB').textContent    = bnb.toFixed(4)+' tBNB';
+    log('swap','✅ 钱包已连接: '+account,'ok');
+    refreshAllBals();
+  }catch(e){ alert('钱包连接失败：'+e.message); }
+}
+if(window.ethereum){
+  window.ethereum.on('chainChanged',()=>location.reload());
+  window.ethereum.on('accountsChanged',()=>location.reload());
+}
+
+// ═══════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════
+const dl    = ()=>Math.floor(Date.now()/1000)+1200;
+const toW   = (v,d)=>ethers.utils.parseUnits((+v).toFixed(d),d);
+const frW   = (v,d)=>ethers.utils.formatUnits(v,d);
+const zero  = a=>a===ethers.constants.AddressZero;
+const norm  = s=>s&&s.trim().length?s.trim():null;
+const txLink= h=>`<a class="txlink" href="${EXPLORER}${h}" target="_blank">${h.slice(0,10)}...${h.slice(-6)}</a>`;
+const chkC  = ()=>{ if(!account){alert('请先连接钱包！');return false;} return true; };
+
+// PandaTool: token metadata helper
+async function tInfo(addr){
+  if(!addr) return {name:'tBNB',symbol:'tBNB',decimals:18};
+  const k=addr.toLowerCase();
+  if(cache[k]) return cache[k];
+  const c=rc(addr,ERC20_ABI);
+  const [name,symbol,decimals]=await Promise.all([c.name(),c.symbol(),c.decimals()]);
+  return (cache[k]={name,symbol,decimals});
+}
+async function tBal(addr){
+  if(!account) return ethers.BigNumber.from(0);
+  if(!addr) return rpc().getBalance(account);
+  return rc(addr,ERC20_ABI).balanceOf(account);
+}
+async function tAllow(addr){
+  if(!account||!addr) return MAX;
+  return rc(addr,ERC20_ABI).allowance(account,ROUTER_ADDR);
+}
+
+// Build swap path: null = tBNB (use WBNB_ADDR in path)
+function mkPath(inAddr, outAddr){
+  const a = inAddr  || WBNB_ADDR;
+  const b = outAddr || WBNB_ADDR;
+  if(a===b) return [a]; // same token
+  if(a===WBNB_ADDR || b===WBNB_ADDR) return [a,b];
+  return [a,WBNB_ADDR,b];
+}
+
+// PandaTool: activity log helper
+function log(panel,msg,type=''){
+  const box=document.getElementById(panel+'Log');
+  box.className='logbox show';
+  const now=new Date();
+  const t=[now.getHours(),now.getMinutes(),now.getSeconds()].map(n=>n.toString().padStart(2,'0')).join(':');
+  const el=document.createElement('div');el.className='le';
+  el.innerHTML=`<span class="lt">${t}</span><span class="lm ${type}">${msg}</span>`;
+  box.insertBefore(el,box.firstChild);
+}
+
+async function doApprove(tokenAddr,panel,cb){
+  try{
+    log(panel,'⏳ 正在发送授权请求，请在钱包中确认...','pend');
+    const tx=await wc(tokenAddr,ERC20_ABI).approve(ROUTER_ADDR,MAX);
+    log(panel,'⏳ 授权交易已发送，等待链上确认... '+txLink(tx.hash),'pend');
+    await tx.wait();
+    log(panel,'✅ 授权成功！','ok');
+    if(cb) await cb();
+  }catch(e){ log(panel,'❌ 授权失败：'+(e.reason||e.message),'err'); }
+}
+
+// ═══════════════════════════════════════════════
+// TOKEN PICKER COMPONENT
+// ═══════════════════════════════════════════════
+// id: unique id for this picker instance
+// label: display label
+// onchange: callback(resolvedAddr) when selection changes
+// showApprove: show approve strip
+function createPicker(id, label, onchange, showApprove=false){
+  pickers[id] = { selectedPreset:-1, customAddr:'', resolvedAddr:null, resolvedInfo:null };
+  const container = document.getElementById(id);
+  if(!container) return;
+
+  const apprHTML = showApprove ? `
+    <div class="astrip" id="${id}_strip">
+      <span class="amsg" id="${id}_msg">—</span>
+      <button class="abtn go" id="${id}_abtn" onclick="pickerApprove('${id}')">授权</button>
+    </div>` : '';
+
+  container.innerHTML = `
+    <div class="tpicker">
+      <div class="tpicker-label">
+        <span>${label}</span>
+        <span class="balbtn" id="${id}_bal" onclick="pickerMax('${id}')" style="display:none">余额: —</span>
+      </div>
+      <div class="token-btns" id="${id}_btns">
+        ${PRESET_TOKENS.map((t,i)=>`
+          <button class="tbtn" id="${id}_p${i}" onclick="selectPreset('${id}',${i})">
+            <img class="ticon" src="${t.icon}" onerror="this.style.display='none';this.nextSibling.style.display='flex'" alt="">
+            <span class="ticon-placeholder" style="display:none">${t.symbol[0]}</span>
+            ${t.symbol}
+          </button>`).join('')}
+        <button class="tbtn" id="${id}_pcustom" onclick="toggleCustom('${id}')">+ 自定义</button>
+      </div>
+      <div id="${id}_custom" style="display:none">
+        <div class="custom-addr-row">
+          <input type="text" id="${id}_customInput" placeholder="输入 BEP-20 合约地址 0x..." oninput="onCustomInput('${id}')">
+          <button class="search-btn" onclick="searchCustom('${id}')">搜索</button>
+        </div>
+        <div class="token-result" id="${id}_result"></div>
+      </div>
+      ${apprHTML}
+    </div>`;
+}
+
+function selectPreset(id, idx){
+  const p = pickers[id];
+  p.selectedPreset = idx;
+  p.customAddr = '';
+  const tk = PRESET_TOKENS[idx];
+  p.resolvedAddr = tk.address;
+  p.resolvedInfo = { symbol: tk.symbol, name: tk.name, decimals: tk.decimals||18 };
+  // 如果是 ERC20，异步校正精度
+  if(tk.address){ tInfo(tk.address).then(info=>{ if(pickers[id].selectedPreset===idx) pickers[id].resolvedInfo=info; }).catch(()=>{}); }
+  // Update button styles
+  PRESET_TOKENS.forEach((_,i)=>{
+    const b=document.getElementById(`${id}_p${i}`);
+    if(b) b.className='tbtn'+(i===idx?' sel':'');
+  });
+  const cb=document.getElementById(`${id}_pcustom`);
+  if(cb) cb.className='tbtn';
+  document.getElementById(`${id}_custom`).style.display='none';
+  refreshPickerBal(id);
+  if(document.getElementById(`${id}_strip`)) refreshPickerApprove(id);
+  if(typeof window[`picker_${id}_cb`]==='function') window[`picker_${id}_cb`](p.resolvedAddr);
+}
+
+function toggleCustom(id){
+  const div=document.getElementById(`${id}_custom`);
+  const showing = div.style.display!=='none';
+  div.style.display = showing?'none':'block';
+  const b=document.getElementById(`${id}_pcustom`);
+  if(b) b.className='tbtn'+(showing?'':' custom-active');
+  if(!showing){
+    // deselect presets
+    PRESET_TOKENS.forEach((_,i)=>{ const b=document.getElementById(`${id}_p${i}`); if(b) b.className='tbtn'; });
+  }
+}
+
+function onCustomInput(id){
+  const val=document.getElementById(`${id}_customInput`).value.trim();
+  if(!val){ document.getElementById(`${id}_result`).className='token-result'; }
+}
+
+async function searchCustom(id){
+  const addr=norm(document.getElementById(`${id}_customInput`).value);
+  const res=document.getElementById(`${id}_result`);
+  if(!addr){ res.className='token-result bad'; res.textContent='请输入有效的合约地址（0x...）'; return; }
+  res.className='token-result ok'; res.textContent='查询中...';
+  try{
+    const info=await tInfo(addr);
+    pickers[id].resolvedAddr=addr;
+    pickers[id].resolvedInfo=info;
+    pickers[id].selectedPreset=-1;
+    res.className='token-result ok';
+    res.textContent=`✅ ${info.name} (${info.symbol}) | ${info.decimals} 位精度`;
+    // deselect presets
+    PRESET_TOKENS.forEach((_,i)=>{ const b=document.getElementById(`${id}_p${i}`); if(b) b.className='tbtn'; });
+    refreshPickerBal(id);
+    if(document.getElementById(`${id}_strip`)) refreshPickerApprove(id);
+    if(typeof window[`picker_${id}_cb`]==='function') window[`picker_${id}_cb`](addr);
+  }catch(e){
+    res.className='token-result bad';
+    res.textContent='❌ 读取失败，请确认合约地址正确且已部署在 BSC 测试网';
+  }
+}
+
+async function refreshPickerBal(id){
+  const p=pickers[id];
+  if(!account||!p.resolvedInfo) return;
+  try{
+    const bal=+frW(await tBal(p.resolvedAddr),p.resolvedInfo.decimals);
+    const balText=`余额: ${bal.toFixed(6)} ${p.resolvedInfo.symbol}`;
+    const el=document.getElementById(`${id}_bal`);
+    if(el) el.textContent=balText;
+    // 同步到外部余额标签
+    const labelMap={
+      'swapInPicker':'swapInBalLbl',
+      'swapOutPicker':'swapOutBalLbl',
+      'liqInPicker':'liqABalLbl',
+      'liqOutPicker':'liqBBalLbl',
+    };
+    if(labelMap[id]){
+      const ext=document.getElementById(labelMap[id]);
+      if(ext) ext.textContent=balText;
+    }
+  }catch{}
+}
+
+async function refreshPickerApprove(id){
+  const p=pickers[id];
+  const strip=document.getElementById(`${id}_strip`);
+  if(!strip||!p.resolvedAddr) return; // BNB needs no approval
+  if(!p.resolvedAddr){ strip.className='astrip'; return; }
+  try{
+    const allow=await tAllow(p.resolvedAddr);
+    const ok=allow.gt(0);
+    strip.className='astrip show';
+    const msg=document.getElementById(`${id}_msg`);
+    msg.textContent=ok?`✅ ${p.resolvedInfo.symbol} 已授权`:`❌ ${p.resolvedInfo.symbol} 未授权，请先点击「授权」`;
+    msg.className='amsg '+(ok?'ok':'bad');
+    const btn=document.getElementById(`${id}_abtn`);
+    btn.textContent=ok?'已授权 ✓':'授权';
+    btn.className='abtn '+(ok?'done':'go');
+  }catch{}
+}
+
+async function pickerMax(id){
+  const p=pickers[id];
+  if(!account||!p.resolvedInfo) return;
+  try{
+    let bal=+frW(await tBal(p.resolvedAddr),p.resolvedInfo.decimals);
+    if(!p.resolvedAddr) bal=Math.max(0,bal-0.003); // 预留 gas
+    // Find associated amt input
+    const amtMap={'swapInPicker':'swapInAmt','liqInPicker':'liqAmtA','liqOutPicker':'liqAmtB'};
+    const amtId=amtMap[id];
+    if(amtId){ document.getElementById(amtId).value=bal.toFixed(8); schedCalc(); }
+  }catch{}
+}
+
+async function pickerApprove(id){
+  if(!chkC()) return;
+  const p=pickers[id];
+  if(!p.resolvedAddr) return;
+  const panelMap={'swapInPicker':'swap','liqInPicker':'liq','liqOutPicker':'liq'};
+  await doApprove(p.resolvedAddr, panelMap[id]||'swap', ()=>refreshPickerApprove(id));
+}
+
+function getPickerAddr(id){ return pickers[id]?.resolvedAddr||null; }
+
+async function setPickerAddress(id, addr){
+  const p = pickers[id];
+  if(!p) return;
+  if(!addr || zero(addr)){
+    selectPreset(id,0); // tBNB
+    return;
+  }
+  if(addr.toLowerCase()===WBNB_ADDR.toLowerCase()){
+    selectPreset(id,1); // WBNB
+    return;
+  }
+  const presetIdx = PRESET_TOKENS.findIndex(t=>t.address && t.address.toLowerCase()===addr.toLowerCase());
+  if(presetIdx >= 0){
+    selectPreset(id,presetIdx);
+    return;
+  }
+  const info = await tInfo(addr);
+  p.selectedPreset = -1;
+  p.customAddr = addr;
+  p.resolvedAddr = addr;
+  p.resolvedInfo = info;
+  const customDiv = document.getElementById(`${id}_custom`);
+  const customInput = document.getElementById(`${id}_customInput`);
+  const result = document.getElementById(`${id}_result`);
+  if(customDiv) customDiv.style.display = 'block';
+  if(customInput) customInput.value = addr;
+  if(result){
+    result.className = 'token-result ok';
+    result.textContent = `✅ ${info.name} (${info.symbol}) | ${info.decimals} 位精度`;
+  }
+  PRESET_TOKENS.forEach((_,i)=>{ const b=document.getElementById(`${id}_p${i}`); if(b) b.className='tbtn'; });
+  const cb=document.getElementById(`${id}_pcustom`); if(cb) cb.className='tbtn custom-active';
+  refreshPickerBal(id);
+  if(document.getElementById(`${id}_strip`)) refreshPickerApprove(id);
+  if(typeof window[`picker_${id}_cb`]==='function') window[`picker_${id}_cb`](addr);
+}
+
+function getPickerInfo(id){ return pickers[id]?.resolvedInfo||null; }
+
+// ═══════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════
+function goTab(id){
+  ['swap','create','manage'].forEach((s,i)=>{
+    document.querySelectorAll('.tab')[i].classList.toggle('on',s===id);
+    document.getElementById('panel-'+s).classList.toggle('on',s===id);
+  });
+  if(id==='create') setTimeout(()=>{ calcLiqB(); },100);
+  if(id==='manage') setTimeout(()=>{ scanLP(); },100);
+}
+
+// ═══════════════════════════════════════════════
+// SLIPPAGE
+// ═══════════════════════════════════════════════
+function setSl(btn,val){
+  if(isNaN(val)||val<=0||val>100) return;
+  slip=val;
+  document.querySelectorAll('.slb').forEach(b=>b.classList.remove('on'));
+  if(btn){
+    btn.classList.add('on');
+    // 清空自定义输入框
+    const ci=document.getElementById('slCust');
+    if(ci) ci.value='';
+  }
+  updateSwapBox();
+}
+
+// ═══════════════════════════════════════════════
+// SWAP
+// ═══════════════════════════════════════════════
+let calcTimer=null, lastOut=null;
+function schedCalc(){ clearTimeout(calcTimer); calcTimer=setTimeout(doCalc,400); }
+
+// PandaTool: quote engine
+async function doCalc(){
+  const inAddr  = getPickerAddr('swapInPicker');
+  const outAddr = getPickerAddr('swapOutPicker');
+  const amtRaw  = document.getElementById('swapInAmt').value;
+  const inInfo  = getPickerInfo('swapInPicker');
+  const outInfo = getPickerInfo('swapOutPicker');
+  const alertEl2 = document.getElementById('swapAlert');
+  if(!inInfo||!outInfo){
+    document.getElementById('swapOutAmt').value='';
+    document.getElementById('swapBox').className='ibox';
+    document.getElementById('swapBtn').textContent='请选择代币';
+    if(alertEl2) alertEl2.style.display='none';
+    lastOut=null; return;
+  }
+  if(!amtRaw||+amtRaw<=0){
+    document.getElementById('swapOutAmt').value='';
+    document.getElementById('swapBox').className='ibox';
+    document.getElementById('swapBtn').textContent='请输入数量';
+    if(alertEl2) alertEl2.style.display='none';
+    lastOut=null; return;
+  }
+  // 同一个代币，不能 swap
+  const normIn  = inAddr  || WBNB_ADDR;
+  const normOut = outAddr || WBNB_ADDR;
+  const alertEl = document.getElementById('swapAlert');
+  if(normIn === normOut && !isBnbWbnbPair(inAddr,outAddr)){
+    document.getElementById('swapOutAmt').value='';
+    document.getElementById('swapBox').className='ibox';
+    document.getElementById('swapBtn').textContent='选择不同的代币';
+    if(alertEl){ alertEl.style.display='block'; alertEl.textContent='⚠️ 输入与输出代币相同，请选择不同的代币'; }
+    lastOut=null; return;
+  }
+  if(alertEl) alertEl.style.display='none';
+
+  // 特判：tBNB <-> WBNB，1:1 直接 wrap/unwrap，无需查链上报价
+  if(isBnbWbnbPair(inAddr,outAddr)){
+    const out=+amtRaw;
+    lastOut={out,inAddr,outAddr,inInfo,outInfo,isWrap:true};
+    document.getElementById('swapOutAmt').value=out.toFixed(8);
+    const method=(!inAddr)?'deposit (BNB→WBNB)':'withdraw (WBNB→BNB)';
+    document.getElementById('swapMin').textContent=out.toFixed(8)+' '+outInfo.symbol;
+    document.getElementById('swapRoute').textContent=inInfo.symbol+' → '+outInfo.symbol;
+    document.getElementById('swapMethod').textContent=method;
+    document.getElementById('swapBox').className='ibox show';
+    document.getElementById('swapBtn').textContent=(!inAddr)?'Wrap BNB → WBNB':'Unwrap WBNB → BNB';
+    refreshPickerBal('swapOutPicker');
+    return;
+  }
+  try{
+    const p=mkPath(inAddr,outAddr);
+    if(p.length<2){ lastOut=null; return; }
+    const amts=await rc(ROUTER_ADDR,ROUTER_ABI).getAmountsOut(toW(amtRaw,inInfo.decimals),p);
+    const out=+frW(amts[amts.length-1],outInfo.decimals);
+    lastOut={out,inAddr,outAddr,inInfo,outInfo,isWrap:false};
+    document.getElementById('swapOutAmt').value=out.toFixed(8);
+    updateSwapBox();
+    document.getElementById('swapBox').className='ibox show';
+    document.getElementById('swapBtn').textContent='执行兑换';
+    // 余额由 refreshPickerBal 自动同步到 swapOutBalLbl
+    refreshPickerBal('swapOutPicker');
+  }catch(e){
+    document.getElementById('swapOutAmt').value='';
+    document.getElementById('swapBox').className='ibox';
+    lastOut=null;
+    log('swap','⚠️ 报价获取失败，该交易对可能暂无流动性：'+e.message,'');
+  }
+}
+
+function updateSwapBox(){
+  if(!lastOut) return;
+  const{out,inAddr,outAddr,inInfo,outInfo}=lastOut;
+  const p=mkPath(inAddr,outAddr);
+  const fee=document.getElementById('feeOn').checked;
+  document.getElementById('swapMin').textContent   =(out*(1-slip/100)).toFixed(8)+' '+outInfo.symbol;
+  // 路由路径：用 symbol 替换地址
+  const symMap={};
+  if(inAddr) symMap[inAddr.toLowerCase()]=inInfo.symbol; else symMap[WBNB_ADDR.toLowerCase()]=inInfo.symbol;
+  if(outAddr) symMap[outAddr.toLowerCase()]=outInfo.symbol; else symMap[WBNB_ADDR.toLowerCase()]=outInfo.symbol;
+  symMap[WBNB_ADDR.toLowerCase()]=symMap[WBNB_ADDR.toLowerCase()]||'WBNB';
+  document.getElementById('swapRoute').textContent=p.map(a=>symMap[a.toLowerCase()]||'WBNB').join(' → ');
+  document.getElementById('swapMethod').textContent=fee?'SupportingFeeOnTransferTokens':'标准 swapExact';
+  const bt=+document.getElementById('buyTax').value||0,st=+document.getElementById('sellTax').value||0;
+  // 买入税：out 代币收取（outToken 有 buy tax）；卖出税：in 代币收取（inToken 有 sell tax）
+  // 两者叠加
+  const totalTax = bt + st;
+  document.getElementById('taxEst').textContent=totalTax>0?(out*(1-totalTax/100)).toFixed(8)+' '+outInfo.symbol:'填税率后显示';
+}
+
+document.getElementById('feeOn').addEventListener('change',updateSwapBox);
+document.getElementById('buyTax').addEventListener('input',updateSwapBox);
+document.getElementById('sellTax').addEventListener('input',updateSwapBox);
+
+async function maxSwapIn(){
+  if(!account) return;
+  const p=pickers['swapInPicker']; if(!p.resolvedInfo) return;
+  let bal=+frW(await tBal(p.resolvedAddr),p.resolvedInfo.decimals);
+  if(!p.resolvedAddr){
+    // 原生 BNB：预留 0.003 BNB 作为 gas 费
+    bal=Math.max(0, bal-0.003);
+  }
+  document.getElementById('swapInAmt').value=bal.toFixed(8); schedCalc();
+}
+
+function flipSwap(){
+  const aId='swapInPicker',bId='swapOutPicker';
+  const pa=pickers[aId],pb=pickers[bId];
+  [pickers[aId],pickers[bId]]=[{...pb},{...pa}];
+  renderPickerSelection(aId); renderPickerSelection(bId);
+  // Pancake 行为：翻转后清空数量，让用户重新输入
+  document.getElementById('swapInAmt').value='';
+  document.getElementById('swapOutAmt').value='';
+  document.getElementById('swapBox').className='ibox';
+  document.getElementById('swapBtn').textContent='执行兑换';
+  lastOut=null;
+  refreshPickerBal('swapInPicker');
+  refreshPickerBal('swapOutPicker');
+}
+
+function renderPickerSelection(id){
+  const p=pickers[id];
+  // Clear all selections
+  PRESET_TOKENS.forEach((_,i)=>{ const b=document.getElementById(`${id}_p${i}`); if(b) b.className='tbtn'; });
+  const cb=document.getElementById(`${id}_pcustom`);if(cb) cb.className='tbtn';
+  if(p.selectedPreset>=0){
+    const b=document.getElementById(`${id}_p${p.selectedPreset}`);
+    if(b) b.className='tbtn sel';
+  }
+  refreshPickerBal(id);
+  if(document.getElementById(`${id}_strip`)) refreshPickerApprove(id);
+}
+
+// PandaTool fix: WBNB wrap/unwrap ABI
+const WBNB_ABI = [
+  'function deposit() payable',
+  'function withdraw(uint256 wad)',
+];
+
+async function doSwap(){
+  if(!chkC()) return;
+  const inAddr  = getPickerAddr('swapInPicker');
+  const outAddr = getPickerAddr('swapOutPicker');
+  const inInfo  = getPickerInfo('swapInPicker');
+  const outInfo = getPickerInfo('swapOutPicker');
+  if(!inInfo||!outInfo){ log('swap','⚠️ 请先选择两种代币',''); return; }
+  const amtRaw=document.getElementById('swapInAmt').value;
+  if(!amtRaw||+amtRaw<=0){ log('swap','⚠️ 请填写支付数量',''); return; }
+  // 校验余额
+  if(account){
+    try{
+      const bal=await tBal(inAddr);
+      const needed=toW(amtRaw,inInfo.decimals);
+      if(bal.lt(needed)){ log('swap','❌ 余额不足：可用 '+frW(bal,inInfo.decimals)+' '+inInfo.symbol,'err'); return; }
+    }catch(e){}
+  }
+
+  // ── 特判：tBNB ↔ WBNB（wrap / unwrap，不走 Router）──
+  if(isBnbWbnbPair(inAddr,outAddr)){
+    const amtIn=toW(amtRaw,18);
+    try{
+      const wbnb=new ethers.Contract(WBNB_ADDR,WBNB_ABI,signer);
+      let tx;
+      if(!inAddr){
+        // tBNB → WBNB: deposit
+        log('swap','⏳ 正在 Wrap BNB → WBNB...','pend');
+        tx=await wbnb.deposit({value:amtIn});
+      } else {
+        // WBNB → tBNB: withdraw（需要先 approve 吗？不需要，WBNB withdraw 直接操作自己余额）
+        log('swap','⏳ 正在 Unwrap WBNB → BNB...','pend');
+        tx=await wbnb.withdraw(amtIn);
+      }
+      log('swap','⏳ 交易已提交，等待链上确认... '+txLink(tx.hash),'pend');
+      await tx.wait();
+      log('swap','✅ '+((!inAddr)?'BNB → WBNB':'WBNB → BNB')+' 成功！ '+txLink(tx.hash),'ok');
+      refreshAllBals();
+    }catch(e){
+      log('swap','❌ '+(e.reason||e.message),'err');
+    }
+    return;
+  }
+
+  const outRaw=document.getElementById('swapOutAmt').value;
+  if(!outRaw||+outRaw<=0){ log('swap','⚠️ 请等待报价计算完成',''); return; }
+  // 检查 ERC20 授权
+  if(inAddr){
+    const allow=await tAllow(inAddr);
+    if(!allow.gte(toW(amtRaw,inInfo.decimals))){ log('swap','❌ 授权不足，请在代币选择区点击 Approve','err'); return; }
+  }
+  const fee=document.getElementById('feeOn').checked;
+  const amtIn=toW(amtRaw,inInfo.decimals);
+  const minOut=toW((+outRaw*(1-slip/100)).toFixed(outInfo.decimals),outInfo.decimals);
+  const p=mkPath(inAddr,outAddr);
+  const r=wc(ROUTER_ADDR,ROUTER_ABI);
+  try{
+    log('swap',`⏳ 正在执行兑换（${fee?'FeeOnTransfer 模式':'标准模式'}，滑点 ${slip}%），请在钱包确认...`,'pend');
+    let tx;
+    if(!inAddr){
+      // tBNB → Token
+      tx=await r[fee?'swapExactETHForTokensSupportingFeeOnTransferTokens':'swapExactETHForTokens'](minOut,p,account,dl(),{value:amtIn});
+    }else if(!outAddr){
+      // Token → tBNB
+      tx=await r[fee?'swapExactTokensForETHSupportingFeeOnTransferTokens':'swapExactTokensForETH'](amtIn,minOut,p,account,dl());
+    }else{
+      // Token → Token
+      tx=await r[fee?'swapExactTokensForTokensSupportingFeeOnTransferTokens':'swapExactTokensForTokens'](amtIn,minOut,p,account,dl());
+    }
+    log('swap','⏳ 交易已提交，等待链上确认... '+txLink(tx.hash),'pend');
+    await tx.wait();
+    log('swap','✅ 兑换成功！ '+txLink(tx.hash),'ok');
+    refreshAllBals();
+  }catch(e){
+    const m=e.reason||e.data?.message||e.message||'';
+    if(m.includes('INSUFFICIENT_OUTPUT')||m.includes(' K')) log('swap','❌ 滑点不足（'+slip+'%），请增大滑点后重试','err');
+    else if(m.includes('transferFrom')||m.includes('TRANSFER')) log('swap','❌ 转账失败：请检查 Approve 和余额','err');
+    else log('swap','❌ '+m,'err');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// ADD LIQUIDITY  ← 关键修复：正确区分 BNB/Token 组合
+// ═══════════════════════════════════════════════
+async function calcLiqB(){
+  const aAddr=getPickerAddr('liqInPicker');
+  const bAddr=getPickerAddr('liqOutPicker');
+  const aInfo=getPickerInfo('liqInPicker');
+  const bInfo=getPickerInfo('liqOutPicker');
+  if(!aInfo||!bInfo) return;
+  const amtA=document.getElementById('liqAmtA').value;
+  if(!amtA||+amtA<=0) return;
+
+  // Use WBNB_ADDR for null (tBNB) when querying factory
+  const tA=aAddr||WBNB_ADDR, tB=bAddr||WBNB_ADDR;
+  if(tA===tB){ document.getElementById('liqBHint').textContent='⚠️ 两边不能是同一代币'; return; }
+
+  try{
+    const pairAddr=await rc(FACTORY_ADDR,FACTORY_ABI).getPair(tA,tB);
+    if(zero(pairAddr)){
+      document.getElementById('liqBtn').textContent='创建交易对并添加流动性';
+      document.getElementById('liqBHint').textContent='新交易对，您来定初始价格，请手动填写 B 数量';
+      document.getElementById('liqBox').className='ibox';
+      // 新池子刷新 A/B 余额标签
+      refreshPickerBal('liqInPicker'); refreshPickerBal('liqOutPicker');
+      return;
+    }
+    const pair=rc(pairAddr,PAIR_ABI);
+    const[r0,r1]=await pair.getReserves();
+    const t0=await rc(pairAddr,['function token0() view returns(address)']).token0();
+    const[rA,rB]=t0.toLowerCase()===tA.toLowerCase()?[r0,r1]:[r1,r0];
+    const ra=+frW(rA,aInfo.decimals), rb=+frW(rB,bInfo.decimals);
+    const ratio=rb/ra;
+    document.getElementById('liqAmtB').value=(+amtA*ratio).toFixed(8);
+    document.getElementById('liqBHint').textContent=`1 ${aInfo.symbol} = ${ratio.toFixed(6)} ${bInfo.symbol}`;
+    const total=await pair.totalSupply();
+    const myLP=account?await pair.balanceOf(account):ethers.BigNumber.from(0);
+    const share=+frW(myLP,18)/+frW(total,18)*100;
+    // Show ratio with CORRECT symbols (not BNB hardcoded)
+    document.getElementById('liqBtn').textContent='追加流动性';
+    document.getElementById('liqRatio').textContent=`${ra.toFixed(4)} ${aInfo.symbol} / ${rb.toFixed(4)} ${bInfo.symbol}`;
+    document.getElementById('liqTotal').textContent=(+frW(total,18)).toFixed(6)+' LP';
+    document.getElementById('liqMine').textContent=(+frW(myLP,18)).toFixed(8)+' LP';
+    document.getElementById('liqShare').textContent=share.toFixed(4)+'%';
+    document.getElementById('liqBox').className='ibox show';
+  }catch(e){ log('liq','⚠️ 查询池子失败: '+e.message,''); }
+}
+
+async function maxLiq(side){
+  if(!account) return;
+  const id=side==='A'?'liqInPicker':'liqOutPicker';
+  const p=pickers[id]; if(!p.resolvedInfo) return;
+  let bal=+frW(await tBal(p.resolvedAddr),p.resolvedInfo.decimals);
+  if(!p.resolvedAddr) bal=Math.max(0,bal-0.003); // 预留 gas
+  document.getElementById(side==='A'?'liqAmtA':'liqAmtB').value=bal.toFixed(8);
+  if(side==='A') calcLiqB();
+}
+
+async function doAddLiq(){
+  if(!chkC()) return;
+  const aAddr=getPickerAddr('liqInPicker');
+  const bAddr=getPickerAddr('liqOutPicker');
+  const aInfo=getPickerInfo('liqInPicker');
+  const bInfo=getPickerInfo('liqOutPicker');
+  if(!aInfo||!bInfo){ log('liq','⚠️ 请先选择代币 A 和代币 B',''); return; }
+
+  const tA=aAddr||WBNB_ADDR, tB=bAddr||WBNB_ADDR;
+  if(tA===tB){ log('liq','⚠️ 两种代币不能相同，请重新选择',''); return; }
+
+  const amtA=document.getElementById('liqAmtA').value;
+  const amtB=document.getElementById('liqAmtB').value;
+  if(!amtA||!amtB){ log('liq','⚠️ 请填写代币 A 和代币 B 的数量',''); return; }
+
+  // Pre-check allowances (only for ERC20, not native BNB)
+  const bad=[];
+  if(aAddr){
+    const allow=await tAllow(aAddr);
+    if(!allow.gte(toW(amtA,aInfo.decimals))) bad.push(aInfo.symbol);
+  }
+  if(bAddr){
+    const allow=await tAllow(bAddr);
+    if(!allow.gte(toW(amtB,bInfo.decimals))) bad.push(bInfo.symbol);
+  }
+  // 余额校验
+  const balChecks=[];
+  if(aAddr!==undefined){
+    const bA=await tBal(aAddr);
+    if(bA.lt(wA)) balChecks.push(aInfo.symbol+'（余额不足）');
+  }
+  if(bAddr!==undefined){
+    const bB=await tBal(bAddr);
+    if(bB.lt(wB)) balChecks.push(bInfo.symbol+'（余额不足）');
+  }
+  if(balChecks.length){ log('liq','❌ '+balChecks.join(' 、 ')+'，请检查余额','err'); return; }
+  if(bad.length){ log('liq','❌ '+bad.join(' 和 ')+' 尚未授权，请先点击 Approve 按钮','err'); return; }
+
+  const wA=toW(amtA,aInfo.decimals);
+  const wB=toW(amtB,bInfo.decimals);
+  const r=wc(ROUTER_ADDR,ROUTER_ABI);
+
+  try{
+    log('liq','⏳ 正在添加流动性，请在钱包中确认...','pend');
+    let tx;
+
+    const aBNB = !aAddr; // A is native tBNB
+    const bBNB = !bAddr; // B is native tBNB
+
+    if(aBNB && !bBNB){
+      // tBNB + ERC20 token
+      tx=await r.addLiquidityETH(bAddr,wB,0,0,account,dl(),{value:wA});
+    } else if(!aBNB && bBNB){
+      // ERC20 token + tBNB
+      tx=await r.addLiquidityETH(aAddr,wA,0,0,account,dl(),{value:wB});
+    } else if(!aBNB && !bBNB){
+      // ERC20 + ERC20 — use addLiquidity (NOT addLiquidityETH!)
+      tx=await r.addLiquidity(aAddr,bAddr,wA,wB,0,0,account,dl());
+    } else {
+      log('liq','❌ 不能用两个原生 BNB 添加流动性','err'); return;
+    }
+
+    log('liq','⏳ 交易已提交，等待链上确认... '+txLink(tx.hash),'pend');
+    await tx.wait();
+    log('liq','✅ 流动性添加成功！ '+txLink(tx.hash),'ok');
+    calcLiqB();
+    refreshAllBals();
+    setTimeout(()=>scanLP(),2000); // refresh LP list
+  }catch(e){
+    const m=e.reason||e.data?.message||e.message||'';
+    if(m.includes('transferFrom')||m.includes('TRANSFER'))
+      log('liq','❌ transferFrom 失败：检查 Approve 和余额','err');
+    else log('liq','❌ '+m,'err');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// LP SCAN — scan all factory pairs for my LP balance
+// ═══════════════════════════════════════════════
+async function scanLP(){
+  if(!chkC()) return;
+  const listEl=document.getElementById('lpList');
+  listEl.innerHTML='<div class="lp-scanning">🔍 正在扫描流动性仓位，请稍候...</div>';
+
+  try{
+    const factory=rc(FACTORY_ADDR,FACTORY_ABI);
+    const totalPairs=Number((await factory.allPairsLength()).toString());
+    const myPositions=[];
+
+    const limit=totalPairs;
+    const batchSize=15;
+
+    for(let i=0;i<limit;i+=batchSize){
+      const batch=[];
+      for(let j=i;j<Math.min(i+batchSize,limit);j++) batch.push(j);
+      const settled = await Promise.all(batch.map(async(idx)=>{
+        try{
+          const pairAddr=await factory.allPairs(idx);
+          const pair=rc(pairAddr,PAIR_ABI);
+          const lpBal=await pair.balanceOf(account);
+          if(lpBal.gt(0)){
+            const [t0addr,t1addr,total,[r0,r1]] = await Promise.all([
+              pair.token0(), pair.token1(), pair.totalSupply(), pair.getReserves()
+            ]);
+            const info0=await tInfo(t0addr===WBNB_ADDR?null:t0addr);
+            const info1=await tInfo(t1addr===WBNB_ADDR?null:t1addr);
+            const share = +frW(lpBal,18) / +frW(total,18);
+            return {
+              pairAddr, lpBal, total,
+              t0addr, t1addr, info0, info1,
+              r0, r1, share,
+              get0:(+frW(r0,info0.decimals)*share),
+              get1:(+frW(r1,info1.decimals)*share),
+            };
+          }
+        }catch{}
+        return null;
+      }));
+      settled.forEach(pos=>{ if(pos) myPositions.push(pos); });
+    }
+
+    myPositions.sort((a,b)=>a.lpBal.eq(b.lpBal)?0:(a.lpBal.gt(b.lpBal)?-1:1));
+
+    if(myPositions.length===0){
+      listEl.innerHTML='<div class="lp-empty">未找到流动性仓位（已扫描 '+limit+' 个池子）<br><span style="font-size:10px;color:var(--tx3)">添加流动性后点击重新扫描</span></div>';
+      return;
+    }
+
+    listEl.innerHTML='';
+    myPositions.forEach(pos=>{
+      const symA=pos.info0.symbol, symB=pos.info1.symbol;
+      const iconA=getTokenIcon(pos.t0addr), iconB=getTokenIcon(pos.t1addr);
+      const addPayload = {
+        pairAddr:pos.pairAddr,
+        symA,symB,
+        t0addr:pos.t0addr,t1addr:pos.t1addr,
+        lpBal:pos.lpBal.toString(),
+        get0:pos.get0,get1:pos.get1,share:pos.share
+      };
+      const div=document.createElement('div');
+      div.className='lp-card';
+      div.innerHTML=`
+        <div class="lp-pair">
+          <div class="lp-icons">
+            ${iconA} ${iconB}
+          </div>
+          <span class="lp-name">${symA} / ${symB}</span>
+          <span class="lp-badge">LP</span>
+        </div>
+        <div class="lp-stats">
+          <div class="lp-stat"><div class="lp-stat-label">我的 LP</div><div class="lp-stat-val">${(+frW(pos.lpBal,18)).toFixed(8)}</div></div>
+          <div class="lp-stat"><div class="lp-stat-label">占比</div><div class="lp-stat-val">${(pos.share*100).toFixed(4)}%</div></div>
+          <div class="lp-stat"><div class="lp-stat-label">持有 ${symA}（税前）</div><div class="lp-stat-val">${pos.get0.toFixed(6)}</div></div>
+          <div class="lp-stat"><div class="lp-stat-label">持有 ${symB}（税前）</div><div class="lp-stat-val">${pos.get1.toFixed(6)}</div></div>
+        </div>
+        <div class="lp-actions">
+          <button class="lp-act-btn add" onclick='quickAddFromLP(${JSON.stringify(addPayload)})'>➕ 追加流动性</button>
+          <button class="lp-act-btn rem" onclick='openRemForm(${JSON.stringify(addPayload)})'>➖ 移除流动性</button>
+        </div>`;
+      listEl.appendChild(div);
+    });
+  }catch(e){
+    listEl.innerHTML='<div class="lp-empty" style="color:var(--red)">扫描失败，请检查网络连接：'+e.message+'</div>';
+  }
+}
+
+function getTokenIcon(addr){
+  const preset=PRESET_TOKENS.find(t=>t.address&&t.address.toLowerCase()===addr?.toLowerCase());
+  if(preset) return `<img class="ticon" src="${preset.icon}" onerror="this.style.display='none'" alt="${preset.symbol}">`;
+  return `<div class="ticon-placeholder">${addr?.slice(2,4)||'?'}</div>`;
+}
+
+
+async function quickAddFromLP(pos){
+  try{
+    await setPickerAddress('liqInPicker', pos.t0addr);
+    await setPickerAddress('liqOutPicker', pos.t1addr);
+    goTab('create');
+    setTimeout(()=>{ calcLiqB(); },120);
+  }catch(e){
+    log('liq','❌ 预填充失败: '+(e.message||e),'err');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// REMOVE LIQUIDITY
+// ═══════════════════════════════════════════════
+function openRemForm(pos){
+  activeRemLP=pos;
+  document.getElementById('remFormTitle').textContent=`移除流动性：${pos.symA} / ${pos.symB}`;
+  document.getElementById('remLPAddr').value=pos.pairAddr;
+  document.getElementById('remMyLP').textContent=(+frW(pos.lpBal,18)).toFixed(10)+' LP';
+  document.getElementById('remGetA').textContent=pos.get0.toFixed(8)+' '+pos.symA+'（税前）';
+  document.getElementById('remGetB').textContent=pos.get1.toFixed(8)+' '+pos.symB+'（税前）';
+  document.getElementById('remPct').value=100;
+  document.getElementById('remForm').className='rem-form show';
+  document.getElementById('remForm').scrollIntoView({behavior:'smooth',block:'nearest'});
+  // Check LP allowance
+  refreshRemApprove(pos.pairAddr);
+}
+
+async function refreshRemApprove(pairAddr){
+  try{
+    const allow=await rc(pairAddr,ERC20_ABI).allowance(account,ROUTER_ADDR);
+    const ok=allow.gt(0);
+    document.getElementById('remLPStrip').className='astrip show';
+    const msg=document.getElementById('remLPMsg');
+    msg.textContent=ok?'✅ LP Token 已授权':'❌ LP Token 未授权，移除前请先授权';
+    msg.className='amsg '+(ok?'ok':'bad');
+    const btn=document.getElementById('remLPBtn');
+    btn.textContent=ok?'已授权 ✓':'授权 LP';
+    btn.className='abtn '+(ok?'done':'go');
+  }catch{}
+}
+
+async function approveLP(){
+  if(!chkC()||!activeRemLP) return;
+  await doApprove(activeRemLP.pairAddr,'rem',()=>refreshRemApprove(activeRemLP.pairAddr));
+}
+
+function setRemPct(p){ document.getElementById('remPct').value=p; }
+function closeRemForm(){ document.getElementById('remForm').className='rem-form'; activeRemLP=null; }
+
+async function doRemove(){
+  if(!chkC()||!activeRemLP){ log('rem','⚠️ 请先在「我的流动性」中选择要移除的仓位',''); return; }
+  const pos=activeRemLP;
+  const pct=+document.getElementById('remPct').value/100;
+  if(isNaN(pct)||pct<=0||pct>1){ log('rem','⚠️ 移除比例需在 1% ~ 100% 之间',''); return; }
+  const allow=await rc(pos.pairAddr,ERC20_ABI).allowance(account,ROUTER_ADDR);
+  if(!allow.gt(0)){ log('rem','❌ LP Token 尚未授权，请先点击「Approve LP」','err'); return; }
+  try{
+    const lpBal=ethers.BigNumber.from(pos.lpBal);
+    const lpAmt=lpBal.mul(Math.floor(pct*10000)).div(10000);
+    const r=wc(ROUTER_ADDR,ROUTER_ABI);
+    log('rem','⏳ 移除流动性...','pend');
+    let tx;
+    const aIsWBNB=pos.t0addr.toLowerCase()===WBNB_ADDR.toLowerCase();
+    const bIsWBNB=pos.t1addr.toLowerCase()===WBNB_ADDR.toLowerCase();
+    // Use removeLiquidityETHSupportingFeeOnTransferTokens when one side is WBNB
+    if(bIsWBNB){
+      tx=await r.removeLiquidityETHSupportingFeeOnTransferTokens(pos.t0addr,lpAmt,0,0,account,dl());
+    } else if(aIsWBNB){
+      tx=await r.removeLiquidityETHSupportingFeeOnTransferTokens(pos.t1addr,lpAmt,0,0,account,dl());
+    } else {
+      tx=await r.removeLiquidity(pos.t0addr,pos.t1addr,lpAmt,0,0,account,dl());
+    }
+    log('rem','⏳ 交易已提交，等待链上确认... '+txLink(tx.hash),'pend');
+    await tx.wait();
+    log('rem','✅ 流动性移除成功！ '+txLink(tx.hash),'ok');
+    closeRemForm();
+    setTimeout(()=>scanLP(),2000);
+    refreshAllBals();
+  }catch(e){ log('rem','❌ '+(e.reason||e.message),'err'); }
+}
+
+// ═══════════════════════════════════════════════
+// POOL INFO
+// ═══════════════════════════════════════════════
+async function queryPool(){
+  const aAddr=getPickerAddr('poolInPicker');
+  const bAddr=getPickerAddr('poolOutPicker');
+  const aInfo=getPickerInfo('poolInPicker');
+  const bInfo=getPickerInfo('poolOutPicker');
+  if(!aInfo||!bInfo){ log('pool','⚠️ 请先选择要查询的两个代币',''); return; }
+  const tA=aAddr||WBNB_ADDR, tB=bAddr||WBNB_ADDR;
+  try{
+    const pairAddr=await rc(FACTORY_ADDR,FACTORY_ABI).getPair(tA,tB);
+    if(zero(pairAddr)){ log('pool','⚠️ 该交易对尚未创建流动性池',''); return; }
+    const pair=rc(pairAddr,PAIR_ABI);
+    const[r0,r1]=await pair.getReserves();
+    const t0=await rc(pairAddr,['function token0() view returns(address)']).token0();
+    const[rA,rB]=t0.toLowerCase()===tA.toLowerCase()?[r0,r1]:[r1,r0];
+    const ra=+frW(rA,aInfo.decimals),rb=+frW(rB,bInfo.decimals);
+    const total=await pair.totalSupply();
+    const myLP=account?await pair.balanceOf(account):ethers.BigNumber.from(0);
+    const share=+frW(total,18)>0?+frW(myLP,18)/+frW(total,18)*100:0;
+    document.getElementById('piName').textContent=aInfo.symbol+' / '+bInfo.symbol;
+    document.getElementById('piAddr').textContent=pairAddr;
+    document.getElementById('piResA').textContent=ra.toFixed(6)+' '+aInfo.symbol;
+    document.getElementById('piResB').textContent=rb.toFixed(6)+' '+bInfo.symbol;
+    document.getElementById('piPrAB').textContent=(rb/ra).toFixed(8)+' '+bInfo.symbol;
+    document.getElementById('piPrBA').textContent=(ra/rb).toFixed(8)+' '+aInfo.symbol;
+    document.getElementById('piTotal').textContent=(+frW(total,18)).toFixed(6)+' LP';
+    document.getElementById('piMine').textContent=(+frW(myLP,18)).toFixed(10)+' LP';
+    document.getElementById('piShare').textContent=share.toFixed(4)+'%';
+    document.getElementById('piCard').className='pcard show';
+    log('pool','✅ 池子信息查询成功','ok');
+  }catch(e){ log('pool','❌ '+(e.reason||e.message),'err'); }
+}
+
+// ═══════════════════════════════════════════════
+// REFRESH ALL BALANCES
+// ═══════════════════════════════════════════════
+async function refreshAllBals(){
+  if(!account) return;
+  const bnb=+frW(await rpc().getBalance(account),18);
+  document.getElementById('wBNB').textContent=bnb.toFixed(4)+' tBNB';
+  ['swapInPicker','swapOutPicker','liqInPicker','liqOutPicker','poolInPicker','poolOutPicker'].forEach(id=>refreshPickerBal(id));
+  // liqABalLbl 由 refreshPickerBal 自动同步
+  if(document.getElementById('panel-manage')?.classList.contains('on')) scanLP();
+}
+
+// ═══════════════════════════════════════════════
+// INIT — Create all pickers
+// ═══════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
+  createPicker('swapInPicker',  '支付代币', (addr)=>{ schedCalc(); refreshPickerApprove('swapInPicker'); }, true);
+  createPicker('swapOutPicker', '接收代币', (addr)=>{ schedCalc(); }, false);
+  createPicker('liqInPicker',   '代币 A',   (addr)=>{ calcLiqB(); refreshPickerApprove('liqInPicker'); }, true);
+  createPicker('liqOutPicker',  '代币 B',   (addr)=>{ calcLiqB(); refreshPickerApprove('liqOutPicker'); }, true);
+  createPicker('poolInPicker',  '代币 A',   ()=>{ if(getPickerAddr('poolOutPicker')!==null||getPickerInfo('poolOutPicker')) queryPool(); }, false);
+  createPicker('poolOutPicker', '代币 B',   ()=>{ if(getPickerAddr('poolInPicker')!==null||getPickerInfo('poolInPicker'))  queryPool(); }, false);
+
+  // Register picker callbacks
+  window['picker_swapInPicker_cb']  = (addr)=>{
+    const outAddr=getPickerAddr('swapOutPicker');
+    if(addr!==null && outAddr!==null && addr===outAddr){
+      // 和 out 相同代币，自动清掉 out 选择
+      const p=pickers['swapOutPicker'];
+      p.selectedPreset=-1; p.resolvedAddr=null; p.resolvedInfo=null;
+      PRESET_TOKENS.forEach((_,i)=>{ const b=document.getElementById(`swapOutPicker_p${i}`); if(b) b.className='tbtn'; });
+      document.getElementById('swapOutPicker_bal').textContent='余额: —';
+      const ext=document.getElementById('swapOutBalLbl'); if(ext) ext.textContent='余额: —';
+    }
+    schedCalc(); refreshPickerApprove('swapInPicker');
+  };
+  window['picker_swapOutPicker_cb'] = (addr)=>{
+    const inAddr=getPickerAddr('swapInPicker');
+    if(addr!==null && inAddr!==null && addr===inAddr){
+      const p=pickers['swapInPicker'];
+      p.selectedPreset=-1; p.resolvedAddr=null; p.resolvedInfo=null;
+      PRESET_TOKENS.forEach((_,i)=>{ const b=document.getElementById(`swapInPicker_p${i}`); if(b) b.className='tbtn'; });
+      document.getElementById('swapInPicker_bal').textContent='余额: —';
+      const ext=document.getElementById('swapInBalLbl'); if(ext) ext.textContent='余额: —';
+    }
+    schedCalc();
+  };
+  window['picker_liqInPicker_cb']   = (addr)=>{ calcLiqB(); refreshPickerApprove('liqInPicker'); };
+  window['picker_liqOutPicker_cb']  = (addr)=>{ calcLiqB(); refreshPickerApprove('liqOutPicker'); };
+
+  window['picker_poolInPicker_cb']  = ()=>{ if(getPickerInfo('poolInPicker')&&getPickerInfo('poolOutPicker')) queryPool(); };
+  window['picker_poolOutPicker_cb'] = ()=>{ if(getPickerInfo('poolInPicker')&&getPickerInfo('poolOutPicker')) queryPool(); };
+
+  // 初始按钮文字
+  document.getElementById('swapBtn').textContent='请输入数量';
+  document.getElementById('liqBtn').textContent='添加流动性';
+
+  // Default selections
+  selectPreset('swapInPicker', 0);   // tBNB
+  selectPreset('swapOutPicker', 2);  // USDT
+  selectPreset('liqInPicker', 0);    // tBNB
+  selectPreset('liqOutPicker', 2);   // USDT
+  selectPreset('poolInPicker', 0);
+  selectPreset('poolOutPicker', 2);
+
+  if(document.getElementById('panel-manage').classList.contains('on')) scanLP();
+});
+</script>
+</body>
+</html>
