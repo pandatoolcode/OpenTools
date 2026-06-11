@@ -1,0 +1,109 @@
+# TRON Nile DEX Tool
+
+这是一个基于 **TRON Nile 测试网** 和 **SunSwap V2** 协议构建的 DEX 前端工具，用于演示 TRON 生态下的链上交互流程。
+
+---
+
+## 🔗 在线演示
+
+https://pandatoolcode.github.io/pandatool-dex-tools/tron-nile-dex/
+
+---
+
+## 🧰 适用网络与钱包
+
+- **网络**：TRON Nile Testnet
+- **钱包**：TronLink
+- **浏览器**：https://nile.tronscan.org
+
+---
+
+## 💧 水龙头
+
+- 官方水龙头：https://nileex.io/join/getJoinPage
+- 浏览器：https://nile.tronscan.org
+- 第三方购买：https://www.bisell.site/buy/81
+
+---
+
+## 📄 核心合约地址
+
+| 合约 | 地址 |
+|------|------|
+| V2 Router | TMn1qrmYUMSTXo9babrJLzepKZoPC7M6Sy |
+| V2 Factory | THomLGMLhAjMecQf9FQjbZ8a1RtwsZLrGE |
+| WTRX | TNUC9Qb1rRpN8CkFCRX1AsHwbvLFYMnP3q |
+| 测试 USDT | TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf |
+| 测试 USDC | TEMVynQpntMqkPxP6wXTW2K7e4sM3cRmWz |
+| 测试 USDD | TFT7sNiNDGZcqL7z7dwXUPpxrx1Ewk8iGL |
+
+---
+
+## ✨ 功能特性
+
+### 兑换（Swap）
+支持：
+
+- TRX ↔ TRC20
+- TRC20 ↔ TRC20
+
+可用于测试常见交易路径、价格影响和前端联动效果。
+
+### 添加流动性
+支持：
+
+- TRX + TRC20
+- TRC20 + TRC20
+
+可用于验证 LP 创建和池子初始化流程。
+
+### 移除流动性
+支持按比例移除 LP 仓位，用于测试撤池逻辑和余额回收流程。
+
+### 实时报价
+自动计算：
+
+- 预估兑换数量
+- 价格影响
+- 最小接收量
+
+### 滑点设置
+提供常用预设：
+
+- 0.1%
+- 0.5%
+- 1%
+- 3%
+
+也支持自定义滑点。
+
+### 一键授权
+交易前自动检测授权状态，并执行 approve 流程。
+
+### 预设代币
+内置常用测试代币快捷入口：
+
+- TRX
+- USDT
+- USDC
+- USDD
+
+---
+
+## 🧪 使用提示
+
+- 请先将钱包网络切换到 **TRON Nile**
+- 测试网代币仅用于开发和调试
+- 建议先从水龙头领取少量测试代币，再进行兑换或添加流动性操作
+
+---
+
+## ⚠️ 免责声明
+
+本项目仅用于开发、测试与学习，不构成任何投资建议、收益承诺或交易保证。链上操作存在风险，请自行评估并谨慎使用。
+
+---
+
+## 📄 License
+
+MIT
