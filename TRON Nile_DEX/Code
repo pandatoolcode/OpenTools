@@ -1,0 +1,1503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="PandaTool">
+    <meta name="copyright" content="PandaTool https://pandatool.org">
+    <!-- Built by PandaTool | https://pandatool.org | https://t.me/pandatool -->
+    <title>TRON DEX - Nile Testnet | PandaTool</title>
+    <script src="https://cdn.jsdelivr.net/npm/tronweb@5.3.0/dist/TronWeb.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #ff0066;
+            --secondary: #00d4ff;
+            --accent: #ffcc00;
+            --bg-dark: #0a0e27;
+            --bg-card: #161b33;
+            --text-primary: #ffffff;
+            --text-secondary: #8a92b2;
+            --border: #2d3454;
+            --success: #00ff88;
+            --error: #ff3366;
+            --glow: rgba(255, 0, 102, 0.5);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        body::before {
+            content: '';
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(255,0,102,0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(0,212,255,0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(255,204,0,0.05) 0%, transparent 50%);
+            animation: gradientShift 15s ease infinite;
+            z-index: -1;
+        }
+        @keyframes gradientShift { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.8;transform:scale(1.1)} }
+        body::after {
+            content: '';
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: linear-gradient(var(--border) 1px,transparent 1px), linear-gradient(90deg,var(--border) 1px,transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0.1; z-index: -1;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; position: relative; z-index: 1; }
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 30px 0; border-bottom: 2px solid var(--border); margin-bottom: 40px;
+            flex-wrap: wrap; gap: 15px;
+        }
+        .logo {
+            font-family: 'Orbitron', sans-serif; font-size: 32px; font-weight: 900;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            letter-spacing: 2px; animation: logoGlow 3s ease-in-out infinite;
+        }
+        @keyframes logoGlow { 0%,100%{filter:brightness(1)} 50%{filter:brightness(1.3)} }
+        .network-badge {
+            background: linear-gradient(135deg,rgba(255,0,102,.2),rgba(0,212,255,.2));
+            border: 2px solid var(--secondary); padding: 10px 20px; border-radius: 20px;
+            font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 10px;
+            box-shadow: 0 0 20px rgba(0,212,255,.3);
+        }
+        .network-dot { width: 10px; height: 10px; background: var(--success); border-radius: 50%; animation: pulse 2s ease-in-out infinite; }
+        @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.2);opacity:.7} }
+        .wallet-btn {
+            background: linear-gradient(135deg,var(--primary),#cc0052);
+            border: none; padding: 14px 30px; border-radius: 12px; color: white;
+            font-family: 'Orbitron',sans-serif; font-weight: 700; font-size: 14px;
+            cursor: pointer; transition: all .3s ease; box-shadow: 0 4px 20px rgba(255,0,102,.4);
+        }
+        .wallet-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 30px rgba(255,0,102,.6); }
+        .main-content { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        .card {
+            background: var(--bg-card); border: 2px solid var(--border); border-radius: 24px;
+            padding: 32px; position: relative; transition: all .3s ease;
+        }
+        .card:hover { border-color: var(--primary); transform: translateY(-4px); box-shadow: 0 10px 40px rgba(255,0,102,.2); }
+        .card-title {
+            font-family: 'Orbitron',sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 22px;
+            background: linear-gradient(135deg,var(--text-primary),var(--text-secondary));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .tabs {
+            display: flex; gap: 6px; margin-bottom: 22px;
+            background: rgba(255,255,255,.02); padding: 5px; border-radius: 14px;
+            border: 1px solid var(--border); flex-wrap: wrap;
+        }
+        .tab {
+            flex: 1; padding: 9px 12px; border: none; background: transparent;
+            color: var(--text-secondary); font-family: 'JetBrains Mono',monospace;
+            font-weight: 600; font-size: 12px; cursor: pointer; border-radius: 10px;
+            transition: all .3s ease; min-width: 65px; white-space: nowrap;
+        }
+        .tab.active { background: linear-gradient(135deg,var(--primary),var(--secondary)); color: white; box-shadow: 0 4px 15px rgba(255,0,102,.3); }
+        .tab:hover:not(.active) { background: rgba(255,255,255,.05); color: var(--text-primary); }
+        .input-group { margin-bottom: 16px; }
+        .input-label { display: block; margin-bottom: 7px; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+        .token-address-input {
+            width: 100%; background: rgba(255,255,255,.03); border: 2px solid var(--border);
+            color: var(--text-primary); font-family: 'JetBrains Mono',monospace; font-size: 11px;
+            outline: none; padding: 11px 13px; border-radius: 11px; transition: all .3s ease;
+        }
+        .token-address-input:focus { border-color: var(--primary); box-shadow: 0 0 20px rgba(255,0,102,.2); }
+        .token-address-input::placeholder { color: var(--text-secondary); opacity: .4; font-size: 10px; }
+        .input-wrapper {
+            position: relative; background: rgba(255,255,255,.03); border: 2px solid var(--border);
+            border-radius: 13px; padding: 13px; transition: all .3s ease;
+        }
+        .input-wrapper:focus-within { border-color: var(--primary); box-shadow: 0 0 20px rgba(255,0,102,.2); }
+        .token-input {
+            width: 100%; background: transparent; border: none; color: var(--text-primary);
+            font-family: 'JetBrains Mono',monospace; font-size: 18px; font-weight: 600;
+            outline: none; padding-right: 110px;
+        }
+        .token-input::placeholder { color: var(--text-secondary); opacity: .5; }
+        .token-symbol-display {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            background: linear-gradient(135deg,rgba(255,0,102,.2),rgba(0,212,255,.2));
+            border: 1px solid var(--border); color: var(--text-primary);
+            padding: 5px 12px; border-radius: 9px; font-family: 'JetBrains Mono',monospace;
+            font-weight: 600; font-size: 12px; pointer-events: none;
+        }
+        .query-btn {
+            background: linear-gradient(135deg,var(--secondary),#0099cc); border: none;
+            padding: 7px 14px; border-radius: 8px; color: white;
+            font-family: 'JetBrains Mono',monospace; font-weight: 600; font-size: 11px;
+            cursor: pointer; transition: all .3s ease; margin-top: 5px;
+        }
+        .query-btn:hover { box-shadow: 0 4px 15px rgba(0,212,255,.4); transform: translateY(-1px); }
+        .query-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+        .balance { margin-top: 7px; font-size: 11px; color: var(--text-secondary); display: flex; justify-content: space-between; align-items: center; }
+        .max-btn {
+            background: transparent; border: 1px solid var(--secondary); color: var(--secondary);
+            padding: 3px 9px; border-radius: 6px; font-size: 10px; font-weight: 600;
+            cursor: pointer; transition: all .3s ease;
+        }
+        .max-btn:hover { background: var(--secondary); color: var(--bg-dark); }
+        .swap-arrow { display: flex; justify-content: center; margin: 10px 0; }
+        .swap-arrow-btn {
+            background: linear-gradient(135deg,var(--primary),var(--secondary));
+            border: 3px solid var(--bg-card); width: 42px; height: 42px; border-radius: 50%;
+            color: white; font-size: 18px; cursor: pointer; transition: all .3s ease;
+            box-shadow: 0 4px 15px rgba(255,0,102,.4); display: flex; align-items: center; justify-content: center;
+        }
+        .swap-arrow-btn:hover { transform: rotate(180deg) scale(1.1); box-shadow: 0 6px 25px rgba(255,0,102,.6); }
+        .info-box { background: rgba(255,255,255,.02); border: 1px solid var(--border); border-radius: 13px; padding: 16px; margin-top: 18px; }
+        .info-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,.05); word-break: break-all;
+        }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { color: var(--text-secondary); font-size: 12px; flex-shrink: 0; }
+        .info-value { color: var(--text-primary); font-weight: 600; font-size: 12px; text-align: right; }
+        .action-btn {
+            width: 100%; background: linear-gradient(135deg,var(--primary),var(--secondary));
+            border: none; padding: 15px; border-radius: 13px; color: white;
+            font-family: 'Orbitron',sans-serif; font-weight: 700; font-size: 14px;
+            cursor: pointer; margin-top: 18px; transition: all .3s ease;
+            box-shadow: 0 6px 25px rgba(255,0,102,.4); position: relative; overflow: hidden;
+        }
+        .action-btn::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent);
+            transition: left .5s ease;
+        }
+        .action-btn:hover::before { left: 100%; }
+        .action-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 35px rgba(255,0,102,.6); }
+        .action-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+        .action-btn.danger-btn { background: linear-gradient(135deg,#ff4466,#cc0033); }
+        .settings { margin-top: 18px; padding: 16px; background: rgba(255,255,255,.02); border: 1px solid var(--border); border-radius: 13px; }
+        .settings-title { font-weight: 600; margin-bottom: 12px; color: var(--text-primary); font-size: 12px; }
+        .slippage-options { display: flex; gap: 7px; flex-wrap: wrap; }
+        .slippage-btn {
+            flex: 1; padding: 7px; background: rgba(255,255,255,.03); border: 1px solid var(--border);
+            color: var(--text-secondary); border-radius: 7px; cursor: pointer; transition: all .3s ease;
+            font-family: 'JetBrains Mono',monospace; font-weight: 600; font-size: 11px; min-width: 45px;
+        }
+        .slippage-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .slippage-btn:hover:not(.active) { border-color: var(--primary); background: rgba(255,0,102,.1); }
+        .slippage-custom-input {
+            flex: 1; min-width: 65px; background: rgba(255,255,255,.03); border: 1px solid var(--border);
+            color: var(--text-primary); padding: 7px; border-radius: 7px;
+            font-family: 'JetBrains Mono',monospace; font-weight: 600; font-size: 11px; outline: none; text-align: center;
+        }
+        .slippage-custom-input:focus { border-color: var(--primary); }
+        .status-message { margin-top: 13px; padding: 13px; border-radius: 10px; font-size: 12px; font-weight: 600; animation: slideIn .3s ease; }
+        @keyframes slideIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+        .status-success { background: rgba(0,255,136,.1); border: 1px solid var(--success); color: var(--success); }
+        .status-error   { background: rgba(255,51,102,.1); border: 1px solid var(--error); color: var(--error); }
+        .status-info    { background: rgba(0,212,255,.1);  border: 1px solid var(--secondary); color: var(--secondary); }
+        .status-warning { background: rgba(255,204,0,.1);  border: 1px solid var(--accent); color: var(--accent); }
+        .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid rgba(255,255,255,.3); border-top-color: white; border-radius: 50%; animation: spin .8s linear infinite; margin-right: 7px; }
+        @keyframes spin { to{transform:rotate(360deg)} }
+        .preset-tokens { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 5px; }
+        .preset-token-btn {
+            background: rgba(255,255,255,.03); border: 1px solid var(--border); color: var(--text-secondary);
+            padding: 4px 9px; border-radius: 6px; font-family: 'JetBrains Mono',monospace; font-size: 10px;
+            cursor: pointer; transition: all .3s ease;
+        }
+        .preset-token-btn:hover { border-color: var(--secondary); color: var(--secondary); background: rgba(0,212,255,.05); }
+        /* Remove liquidity */
+        .percent-display { font-size: 32px; font-weight: 700; color: var(--primary); text-align: center; margin: 12px 0; }
+        .percent-slider { width: 100%; accent-color: var(--primary); cursor: pointer; margin: 8px 0; height: 6px; }
+        .quick-pcts { display: flex; gap: 7px; margin: 10px 0; }
+        .quick-pct-btn {
+            flex: 1; padding: 7px; background: rgba(255,255,255,.03); border: 1px solid var(--border);
+            color: var(--text-secondary); border-radius: 7px; cursor: pointer; font-size: 11px;
+            font-family: 'JetBrains Mono',monospace; font-weight: 600; transition: all .3s ease;
+        }
+        .quick-pct-btn:hover { border-color: var(--primary); color: var(--primary); background: rgba(255,0,102,.1); }
+        .brand-tag{font-size:11px;color:var(--text-secondary);letter-spacing:.5px;margin-top:4px;}
+        .brand-link{color:var(--secondary);text-decoration:none;font-weight:600;transition:color .2s;}
+        .brand-link:hover{color:var(--primary);text-shadow:0 0 8px rgba(255,0,102,.5);}
+        .dex-footer{text-align:center;padding:22px 0 16px;font-size:12px;color:var(--text-secondary);border-top:1px solid var(--border);margin-top:30px;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;}
+        .footer-sep{color:var(--border);}
+        @media(max-width:1024px){.main-content{grid-template-columns:1fr}}
+        @media(max-width:768px){.logo{font-size:22px} header{flex-direction:column;align-items:flex-start} .card{padding:18px}}
+        ::-webkit-scrollbar{width:7px}
+        ::-webkit-scrollbar-track{background:var(--bg-dark)}
+        ::-webkit-scrollbar-thumb{background:linear-gradient(135deg,var(--primary),var(--secondary));border-radius:6px}
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <div class="logo">TRON DEX</div>
+        <div class="brand-tag">Powered by <a href="https://pandatool.org/" target="_blank" rel="noopener" class="brand-link">🐼 PandaTool</a> &nbsp;|&nbsp; <a href="https://t.me/pandatool" target="_blank" rel="noopener" class="brand-link">✈️ Telegram</a></div>
+        <div class="network-badge">
+            <div class="network-dot"></div>
+            <span>Nile Testnet</span>
+        </div>
+        <button class="wallet-btn" id="connectWallet">🔌 连接钱包</button>
+    </header>
+
+    <div class="main-content">
+        <!-- ===== LEFT CARD ===== -->
+        <div class="card">
+            <h2 class="card-title">💰 交易面板</h2>
+            <div class="tabs">
+                <button class="tab active" data-tab="swap">🔄 兑换</button>
+                <button class="tab" data-tab="addLiquidity">➕ 添加流动性</button>
+                <button class="tab" data-tab="removeLiquidity">➖ 移除流动性</button>
+            </div>
+
+            <!-- SWAP -->
+            <div id="swapPanel">
+                <div class="input-group">
+                    <label class="input-label">📥 支付 (From)</label>
+                    <input type="text" class="token-address-input" id="fromTokenAddress"
+                        placeholder="代币合约地址，TRX 请直接输入 TRX"
+                        value="TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf">
+                    <div class="preset-tokens">
+                        <button class="preset-token-btn" onclick="setFromToken('TRX')">🔥 TRX</button>
+                        <button class="preset-token-btn" onclick="setFromToken('TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf')">💵 USDT</button>
+                        <button class="preset-token-btn" onclick="setFromToken('TEMVynQpntMqkPxP6wXTW2K7e4sM3cRmWz')">💲 USDC</button>
+                        <button class="preset-token-btn" onclick="setFromToken('TFT7sNiNDGZcqL7z7dwXUPpxrx1Ewk8iGL')">🪙 USDD</button>
+                    </div>
+                    <button class="query-btn" id="queryFromBtn" style="width:100%">🔍 查询代币信息</button>
+                    <div class="input-wrapper" style="margin-top:7px">
+                        <input type="number" class="token-input" id="fromAmount" placeholder="0.0" step="any">
+                        <span class="token-symbol-display" id="fromSymbol">---</span>
+                    </div>
+                    <div class="balance">
+                        <span>💰 余额: <span id="fromBalance">0.0000</span> <span id="fromBalanceSymbol"></span></span>
+                        <button class="max-btn" id="maxBtn">MAX</button>
+                    </div>
+                </div>
+
+                <div class="swap-arrow">
+                    <button class="swap-arrow-btn" id="swapTokens" title="切换方向">⇅</button>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">📤 接收 (To)</label>
+                    <input type="text" class="token-address-input" id="toTokenAddress"
+                        placeholder="代币合约地址，TRX 请直接输入 TRX"
+                        value="TEMVynQpntMqkPxP6wXTW2K7e4sM3cRmWz">
+                    <div class="preset-tokens">
+                        <button class="preset-token-btn" onclick="setToToken('TRX')">🔥 TRX</button>
+                        <button class="preset-token-btn" onclick="setToToken('TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf')">💵 USDT</button>
+                        <button class="preset-token-btn" onclick="setToToken('TEMVynQpntMqkPxP6wXTW2K7e4sM3cRmWz')">💲 USDC</button>
+                        <button class="preset-token-btn" onclick="setToToken('TFT7sNiNDGZcqL7z7dwXUPpxrx1Ewk8iGL')">🪙 USDD</button>
+                    </div>
+                    <button class="query-btn" id="queryToBtn" style="width:100%">🔍 查询代币信息</button>
+                    <div class="input-wrapper" style="margin-top:7px">
+                        <input type="number" class="token-input" id="toAmount" placeholder="0.0" readonly>
+                        <span class="token-symbol-display" id="toSymbol">---</span>
+                    </div>
+                    <div class="balance">
+                        <span>💰 余额: <span id="toBalance">0.0000</span> <span id="toBalanceSymbol"></span></span>
+                    </div>
+                </div>
+
+                <div style="margin-top:10px;padding:8px 12px;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:8px;font-size:11px;color:var(--text-secondary)">
+                    🔄 SunSwap V2 Router
+                </div>
+
+                <div class="info-box">
+                    <div class="info-row">
+                        <span class="info-label">📊 兑换率</span>
+                        <span class="info-value" id="rate">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">📦 最少收到 (含滑点)</span>
+                        <span class="info-value" id="minReceived">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">📉 价格影响</span>
+                        <span class="info-value" id="priceImpact">-</span>
+                    </div>
+                </div>
+                <button class="action-btn" id="swapBtn">💱 执行兑换 Swap</button>
+            </div>
+
+            <!-- ADD LIQUIDITY -->
+            <div id="addLiquidityPanel" style="display:none">
+                <div class="input-group">
+                    <label class="input-label">🪙 Token A</label>
+                    <input type="text" class="token-address-input" id="tokenAAddress"
+                        placeholder="Token A 地址" value="TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf">
+                    <div class="preset-tokens">
+                        <button class="preset-token-btn" onclick="setLiquidityTokenA('TRX')">🔥 TRX</button>
+                        <button class="preset-token-btn" onclick="setLiquidityTokenA('TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf')">💵 USDT</button>
+                        <button class="preset-token-btn" onclick="setLiquidityTokenA('TEMVynQpntMqkPxP6wXTW2K7e4sM3cRmWz')">💲 USDC</button>
+                    </div>
+                    <button class="query-btn" id="queryTokenABtn" style="width:100%">🔍 查询</button>
+                    <div class="input-wrapper" style="margin-top:7px">
+                        <input type="number" class="token-input" id="tokenAAmount" placeholder="0.0" step="any">
+                        <span class="token-symbol-display" id="tokenASymbol">---</span>
+                    </div>
+                    <div class="balance"><span>💰 余额: <span id="tokenABalance">0.0000</span></span></div>
+                </div>
+                <div class="swap-arrow"><span style="color:var(--text-secondary);font-size:22px;text-align:center;display:block">➕</span></div>
+                <div class="input-group">
+                    <label class="input-label">🪙 Token B</label>
+                    <input type="text" class="token-address-input" id="tokenBAddress"
+                        placeholder="Token B 地址" value="TEMVynQpntMqkPxP6wXTW2K7e4sM3cRmWz">
+                    <div class="preset-tokens">
+                        <button class="preset-token-btn" onclick="setLiquidityTokenB('TRX')">🔥 TRX</button>
+                        <button class="preset-token-btn" onclick="setLiquidityTokenB('TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf')">💵 USDT</button>
+                        <button class="preset-token-btn" onclick="setLiquidityTokenB('TEMVynQpntMqkPxP6wXTW2K7e4sM3cRmWz')">💲 USDC</button>
+                    </div>
+                    <button class="query-btn" id="queryTokenBBtn" style="width:100%">🔍 查询</button>
+                    <div class="input-wrapper" style="margin-top:7px">
+                        <input type="number" class="token-input" id="tokenBAmount" placeholder="0.0" step="any">
+                        <span class="token-symbol-display" id="tokenBSymbol">---</span>
+                    </div>
+                    <div class="balance"><span>💰 余额: <span id="tokenBBalance">0.0000</span></span></div>
+                </div>
+                <div class="info-box">
+                    <div class="info-row"><span class="info-label">🏊 池子状态</span><span class="info-value" id="poolStatus">查询代币后自动检测</span></div>
+                    <div class="info-row"><span class="info-label">📊 当前比例</span><span class="info-value" id="poolRatio">-</span></div>
+                    <div class="info-row"><span class="info-label">📊 池子份额</span><span class="info-value" id="poolShare">0%</span></div>
+                </div>
+                <button class="action-btn" id="addLiquidityBtn">💧 添加流动性</button>
+            </div>
+
+            <!-- REMOVE LIQUIDITY -->
+            <div id="removeLiquidityPanel" style="display:none">
+                <div class="input-group">
+                    <label class="input-label">🪙 Token A 地址</label>
+                    <input type="text" class="token-address-input" id="removeTokenAAddress"
+                        placeholder="Token A 地址" value="TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf">
+                    <div class="preset-tokens">
+                        <button class="preset-token-btn" onclick="setRemoveTokenA('TRX')">🔥 TRX</button>
+                        <button class="preset-token-btn" onclick="setRemoveTokenA('TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf')">💵 USDT</button>
+                        <button class="preset-token-btn" onclick="setRemoveTokenA('TEMVynQpntMqkPxP6wXTW2K7e4sM3cRmWz')">💲 USDC</button>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">🪙 Token B 地址</label>
+                    <input type="text" class="token-address-input" id="removeTokenBAddress"
+                        placeholder="Token B 地址" value="TEMVynQpntMqkPxP6wXTW2K7e4sM3cRmWz">
+                    <div class="preset-tokens">
+                        <button class="preset-token-btn" onclick="setRemoveTokenB('TRX')">🔥 TRX</button>
+                        <button class="preset-token-btn" onclick="setRemoveTokenB('TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf')">💵 USDT</button>
+                        <button class="preset-token-btn" onclick="setRemoveTokenB('TEMVynQpntMqkPxP6wXTW2K7e4sM3cRmWz')">💲 USDC</button>
+                    </div>
+                </div>
+                <button class="query-btn" id="queryLPBtn" style="width:100%;margin-top:4px;padding:10px">🔍 查询 LP 余额</button>
+
+                <div class="info-box" id="lpInfoBox" style="display:none">
+                    <div class="info-row">
+                        <span class="info-label">🏊 Pair 地址</span>
+                        <span class="info-value" id="lpPairAddress" style="font-size:9px;word-break:break-all">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">💎 我的 LP</span>
+                        <span class="info-value" id="lpBalance">0</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">📊 池中 Token A</span>
+                        <span class="info-value" id="lpReserveA">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">📊 池中 Token B</span>
+                        <span class="info-value" id="lpReserveB">-</span>
+                    </div>
+                </div>
+
+                <div id="removeLiquidityForm" style="display:none;margin-top:16px">
+                    <label class="input-label">📏 移除比例</label>
+                    <div class="percent-display" id="removePercent">50%</div>
+                    <input type="range" class="percent-slider" id="removeSlider" min="1" max="100" value="50">
+                    <div class="quick-pcts">
+                        <button class="quick-pct-btn" onclick="setRemovePct(25)">25%</button>
+                        <button class="quick-pct-btn" onclick="setRemovePct(50)">50%</button>
+                        <button class="quick-pct-btn" onclick="setRemovePct(75)">75%</button>
+                        <button class="quick-pct-btn" onclick="setRemovePct(100)">全部</button>
+                    </div>
+                    <div class="info-box" style="margin-top:10px">
+                        <div class="info-row"><span class="info-label">📤 预计返还 A</span><span class="info-value" id="expectedA">-</span></div>
+                        <div class="info-row"><span class="info-label">📤 预计返还 B</span><span class="info-value" id="expectedB">-</span></div>
+                        <div class="info-row"><span class="info-label">🔥 销毁 LP</span><span class="info-value" id="burnLP">-</span></div>
+                    </div>
+                    <button class="action-btn danger-btn" id="removeLiquidityBtn">🔥 移除流动性</button>
+                </div>
+            </div>
+
+            <!-- SETTINGS -->
+            <div class="settings">
+                <div class="settings-title">⚙️ 滑点容忍度</div>
+                <div class="slippage-options">
+                    <button class="slippage-btn" data-slippage="0.1">0.1%</button>
+                    <button class="slippage-btn active" data-slippage="0.5">0.5%</button>
+                    <button class="slippage-btn" data-slippage="1">1%</button>
+                    <button class="slippage-btn" data-slippage="3">3%</button>
+                    <input type="number" class="slippage-custom-input" id="customSlippage" placeholder="自定义%" step="0.1" min="0.01" max="50">
+                </div>
+            </div>
+            <div id="statusMessage"></div>
+        </div>
+
+        <!-- ===== RIGHT CARD ===== -->
+        <div class="card">
+            <h2 class="card-title">📋 合约信息</h2>
+            <div class="info-box" style="margin-top:0">
+                <div class="info-row">
+                    <span class="info-label">🔄 V2 Router</span>
+                    <span class="info-value" style="font-size:9px;word-break:break-all">TMn1qrmYUMSTXo9babrJLzepKZoPC7M6Sy</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">🏭 V2 Factory</span>
+                    <span class="info-value" style="font-size:9px;word-break:break-all">THomLGMLhAjMecQf9FQjbZ8a1RtwsZLrGE</span>
+                </div>
+
+                <div class="info-row">
+                    <span class="info-label">🌐 网络</span>
+                    <span class="info-value">Nile Testnet</span>
+                </div>
+            </div>
+            <h2 class="card-title" style="margin-top:24px">📦 测试网代币</h2>
+            <div class="info-box" style="margin-top:0">
+                <div class="info-row"><span class="info-label">💵 USDT</span><span class="info-value" style="font-size:9px;word-break:break-all">TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf</span></div>
+                <div class="info-row"><span class="info-label">💲 USDC</span><span class="info-value" style="font-size:9px;word-break:break-all">TEMVynQpntMqkPxP6wXTW2K7e4sM3cRmWz</span></div>
+                <div class="info-row"><span class="info-label">🪙 USDD</span><span class="info-value" style="font-size:9px;word-break:break-all">TFT7sNiNDGZcqL7z7dwXUPpxrx1Ewk8iGL</span></div>
+            </div>
+            <h2 class="card-title" style="margin-top:24px">📜 最近交易</h2>
+            <div id="transactionList" style="margin-top:12px">
+                <div data-empty="1" style="text-align:center;padding:30px;color:var(--text-secondary)">尚无交易记录</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PandaTool DEX Footer -->
+<footer class="dex-footer">
+  <span>© 2025 <a href="https://pandatool.org/" target="_blank" rel="noopener" class="brand-link">🐼 PandaTool</a></span>
+  <span class="footer-sep">·</span>
+  <a href="https://pandatool.org/" target="_blank" rel="noopener" class="brand-link">官网</a>
+  <span class="footer-sep">·</span>
+  <a href="https://t.me/pandatool" target="_blank" rel="noopener" class="brand-link">Telegram 社群</a>
+  <span class="footer-sep">·</span>
+  <span style="color:var(--text-secondary);font-size:10px">Built on TRON Nile Testnet</span>
+</footer>
+
+<script>
+/* ================================================================
+   CONFIG
+   ================================================================ */
+const CONFIG = {
+    V2_ROUTER:  'TMn1qrmYUMSTXo9babrJLzepKZoPC7M6Sy',
+    V2_FACTORY: 'THomLGMLhAjMecQf9FQjbZ8a1RtwsZLrGE',
+    EXPLORER:   'https://nile.tronscan.org',
+    FEE_LIMIT:  1000000000, // 1000 TRX (测试网宽松)
+    _author:    'PandaTool'  // https://pandatool.org
+};
+
+/* ================================================================
+   ABIs
+   ================================================================ */
+const TRC20_ABI = [
+    {outputs:[{type:'uint256'}],constant:true,inputs:[{name:'who',type:'address'}],name:'balanceOf',stateMutability:'View',type:'Function'},
+    {outputs:[{type:'bool'}],inputs:[{name:'_spender',type:'address'},{name:'_value',type:'uint256'}],name:'approve',stateMutability:'Nonpayable',type:'Function'},
+    {outputs:[{type:'uint256'}],inputs:[{name:'_owner',type:'address'},{name:'_spender',type:'address'}],name:'allowance',stateMutability:'View',type:'Function'},
+    {outputs:[{type:'string'}],constant:true,inputs:[],name:'name',stateMutability:'View',type:'Function'},
+    {outputs:[{type:'string'}],constant:true,inputs:[],name:'symbol',stateMutability:'View',type:'Function'},
+    {outputs:[{type:'uint8'}],constant:true,inputs:[],name:'decimals',stateMutability:'View',type:'Function'}
+];
+
+const V2_ROUTER_ABI = [
+    {inputs:[],name:'WETH',outputs:[{name:'',type:'address'}],stateMutability:'pure',type:'Function'},
+    {inputs:[{name:'amountIn',type:'uint256'},{name:'path',type:'address[]'}],name:'getAmountsOut',outputs:[{name:'amounts',type:'uint256[]'}],stateMutability:'view',type:'Function'},
+    {inputs:[{name:'amountIn',type:'uint256'},{name:'amountOutMin',type:'uint256'},{name:'path',type:'address[]'},{name:'to',type:'address'},{name:'deadline',type:'uint256'}],name:'swapExactTokensForTokens',outputs:[{name:'amounts',type:'uint256[]'}],stateMutability:'nonpayable',type:'Function'},
+    {inputs:[{name:'amountOutMin',type:'uint256'},{name:'path',type:'address[]'},{name:'to',type:'address'},{name:'deadline',type:'uint256'}],name:'swapExactETHForTokens',outputs:[{name:'amounts',type:'uint256[]'}],stateMutability:'payable',type:'Function'},
+    {inputs:[{name:'amountIn',type:'uint256'},{name:'amountOutMin',type:'uint256'},{name:'path',type:'address[]'},{name:'to',type:'address'},{name:'deadline',type:'uint256'}],name:'swapExactTokensForETH',outputs:[{name:'amounts',type:'uint256[]'}],stateMutability:'nonpayable',type:'Function'},
+    {inputs:[{name:'tokenA',type:'address'},{name:'tokenB',type:'address'},{name:'amountADesired',type:'uint256'},{name:'amountBDesired',type:'uint256'},{name:'amountAMin',type:'uint256'},{name:'amountBMin',type:'uint256'},{name:'to',type:'address'},{name:'deadline',type:'uint256'}],name:'addLiquidity',outputs:[{name:'amountA',type:'uint256'},{name:'amountB',type:'uint256'},{name:'liquidity',type:'uint256'}],stateMutability:'nonpayable',type:'Function'},
+    {inputs:[{name:'token',type:'address'},{name:'amountTokenDesired',type:'uint256'},{name:'amountTokenMin',type:'uint256'},{name:'amountETHMin',type:'uint256'},{name:'to',type:'address'},{name:'deadline',type:'uint256'}],name:'addLiquidityETH',outputs:[{name:'amountToken',type:'uint256'},{name:'amountETH',type:'uint256'},{name:'liquidity',type:'uint256'}],stateMutability:'payable',type:'Function'},
+    {inputs:[{name:'tokenA',type:'address'},{name:'tokenB',type:'address'},{name:'liquidity',type:'uint256'},{name:'amountAMin',type:'uint256'},{name:'amountBMin',type:'uint256'},{name:'to',type:'address'},{name:'deadline',type:'uint256'}],name:'removeLiquidity',outputs:[{name:'amountA',type:'uint256'},{name:'amountB',type:'uint256'}],stateMutability:'nonpayable',type:'Function'},
+    {inputs:[{name:'token',type:'address'},{name:'liquidity',type:'uint256'},{name:'amountTokenMin',type:'uint256'},{name:'amountETHMin',type:'uint256'},{name:'to',type:'address'},{name:'deadline',type:'uint256'}],name:'removeLiquidityETH',outputs:[{name:'amountToken',type:'uint256'},{name:'amountETH',type:'uint256'}],stateMutability:'nonpayable',type:'Function'}
+];
+
+const V2_FACTORY_ABI = [
+    {inputs:[{name:'tokenA',type:'address'},{name:'tokenB',type:'address'}],name:'getPair',outputs:[{name:'pair',type:'address'}],stateMutability:'view',type:'Function'}
+];
+
+const V2_PAIR_ABI = [
+    {inputs:[],name:'getReserves',outputs:[{name:'_reserve0',type:'uint112'},{name:'_reserve1',type:'uint112'},{name:'_blockTimestampLast',type:'uint32'}],stateMutability:'view',type:'Function'},
+    {inputs:[],name:'token0',outputs:[{name:'',type:'address'}],stateMutability:'view',type:'Function'},
+    {inputs:[],name:'totalSupply',outputs:[{name:'',type:'uint256'}],stateMutability:'view',type:'Function'},
+    {inputs:[{name:'owner',type:'address'}],name:'balanceOf',outputs:[{name:'',type:'uint256'}],stateMutability:'view',type:'Function'},
+    {inputs:[{name:'spender',type:'address'},{name:'value',type:'uint256'}],name:'approve',outputs:[{name:'',type:'bool'}],stateMutability:'nonpayable',type:'Function'},
+    {inputs:[{name:'owner',type:'address'},{name:'spender',type:'address'}],name:'allowance',outputs:[{name:'',type:'uint256'}],stateMutability:'view',type:'Function'}
+];
+
+
+
+/* ================================================================
+   State — PandaTool Nile DEX v1.0
+   https://pandatool.org | https://t.me/pandatool
+   ================================================================ */
+let tronWeb = null, userAddress = null;
+let slippage = 0.5;
+let cachedWtrx = null;
+const tokenCache = {};
+const _pt = { id: 'PandaTool', site: 'pandatool.org' }; // DEX core identity
+let lpState = {
+    pairAddress: null, lpBalanceRaw: 0n, lpBalance: 0,
+    totalSupply: 0n, reserve0: 0n, reserve1: 0n,
+    token0IsA: true, tokenAInfo: null, tokenBInfo: null
+};
+
+/* ================================================================
+   Utilities
+   ================================================================ */
+const isTrx = a => String(a||'').trim().toUpperCase() === 'TRX';
+const norm   = a => { const v=String(a||'').trim(); return v.toUpperCase()==='TRX'?'TRX':v; };
+const sleep  = ms => new Promise(r=>setTimeout(r,ms)); // PandaTool util
+
+function formatUnits(raw, decimals, prec=6) {
+    const bn = typeof raw==='bigint'?raw:BigInt(String(raw||'0'));
+    const neg = bn<0n, abs=neg?-bn:bn;
+    const base=10n**BigInt(decimals), whole=abs/base, frac=abs%base;
+    let f=frac.toString().padStart(decimals,'0').slice(0,prec).replace(/0+$/,'');
+    return (neg?'-':'')+(f?`${whole}.${f}`:whole.toString());
+}
+
+function parseUnits(amount, decimals) {
+    const v=String(amount||'').trim();
+    if(!v||!/^\d+(\.\d+)?$/.test(v)) throw new Error('无效数字');
+    const [w,f=''] = v.split('.');
+    return BigInt(w+(f+'0'.repeat(decimals)).slice(0,decimals));
+}
+
+// PandaTool: slippage guard — (amount * (10000 - bps)) / 10000
+function applySlip(amount, pct) {
+    const bps=Math.max(0,Math.round(Number(pct)*100));
+    return (BigInt(amount)*(10000n-BigInt(bps)))/10000n;
+}
+
+async function getWtrx() {
+    if (cachedWtrx) return cachedWtrx;
+    try {
+        const r = await tronWeb.contract(V2_ROUTER_ABI, CONFIG.V2_ROUTER);
+        cachedWtrx = String(await r.WETH().call());
+        return cachedWtrx;
+    } catch(e) {
+        // Nile WTRX
+        cachedWtrx = 'TNUC9Qb1rRpN8CkFCRX1AsHwbvLFYMnP3q';
+        return cachedWtrx;
+    }
+}
+
+/* ================================================================
+   Wallet
+   ================================================================ */
+async function connectWallet() {
+    if (!window.tronLink) { showStatus('❌ 请先安装 TronLink 扩展', 'error'); return; }
+    showStatus('⏳ 连接钱包...', 'info');
+    try {
+        const res = await window.tronLink.request({method:'tron_requestAccounts'});
+        if (res.code===200) {
+            tronWeb = window.tronLink.tronWeb || window.tronWeb;
+            userAddress = tronWeb.defaultAddress.base58;
+            const btn = document.getElementById('connectWallet');
+            btn.textContent = '🟢 '+userAddress.slice(0,6)+'...'+userAddress.slice(-4);
+            btn.style.background = 'linear-gradient(135deg,#00ff88,#00cc66)';
+            showStatus('✅ 钱包已连接', 'success', 3000);
+            queryFromToken(); queryToToken();
+        } else showStatus('❌ 连接失败', 'error');
+    } catch(e) { showStatus('❌ '+e.message, 'error'); }
+}
+
+/* ================================================================
+   Token Info
+   ================================================================ */
+async function queryTokenInfo(address, cacheKey) {
+    if (!tronWeb||!userAddress) { showStatus('⚠️ 请先连接钱包','warning'); return null; }
+    address = norm(address);
+    if (isTrx(address)) {
+        const info = {address:'TRX',name:'TRON',symbol:'TRX',decimals:6,balance:0,balanceRaw:'0'};
+        try { const s=await tronWeb.trx.getBalance(userAddress); info.balanceRaw=String(s); info.balance=parseFloat((s/1e6).toFixed(6)); } catch(e){}
+        tokenCache[cacheKey]=info; return info;
+    }
+    if (!address||address.length!==34||!address.startsWith('T')) { showStatus('⚠️ 无效地址','warning'); return null; }
+    try {
+        showStatus('🔍 查询中...','info');
+        const c = await tronWeb.contract(TRC20_ABI, address);
+        const [nR,sR,dR,bR] = await Promise.allSettled([c.name().call(),c.symbol().call(),c.decimals().call(),c.balanceOf(userAddress).call()]);
+        const info = {
+            address,
+            name:     nR.status==='fulfilled'?(nR.value||'Unknown'):'Unknown',
+            symbol:   sR.status==='fulfilled'?(sR.value||'???'):'???',
+            decimals: dR.status==='fulfilled'?(typeof dR.value==='number'?dR.value:parseInt(dR.value.toString(),10)):6,
+            balance:0, balanceRaw:'0'
+        };
+        if (bR.status==='fulfilled') {
+            const s=typeof bR.value==='object'?bR.value.toString():String(bR.value);
+            info.balanceRaw=s; info.balance=parseFloat(formatUnits(BigInt(s),info.decimals,6));
+        }
+        tokenCache[cacheKey]=info;
+        showStatus(`✅ ${info.symbol}，余额: ${info.balance}`,'success',3000);
+        return info;
+    } catch(e) { showStatus('❌ '+e.message,'error'); return null; }
+}
+
+function updateTokenDisplay(prefix, info) {
+    if (!info) return;
+    ['Symbol','Balance','BalanceSymbol'].forEach(k => {
+        const el = document.getElementById(prefix+k);
+        if (!el) return;
+        if (k==='Symbol') el.textContent=info.symbol;
+        else if (k==='Balance') el.textContent=Number(info.balance).toFixed(4);
+        else el.textContent=info.symbol;
+    });
+}
+
+async function queryFromToken() {
+    const info=await queryTokenInfo(document.getElementById('fromTokenAddress').value.trim(),'fromToken');
+    if(info){updateTokenDisplay('from',info);updateQuote();}
+}
+async function queryToToken() {
+    const info=await queryTokenInfo(document.getElementById('toTokenAddress').value.trim(),'toToken');
+    if(info){updateTokenDisplay('to',info);updateQuote();}
+}
+async function queryLiquidityTokenA() {
+    const info=await queryTokenInfo(document.getElementById('tokenAAddress').value.trim(),'liquidityTokenA');
+    if(info){updateTokenDisplay('tokenA',info); await fetchPoolState(); updateLiquidityPreview();}
+}
+async function queryLiquidityTokenB() {
+    const info=await queryTokenInfo(document.getElementById('tokenBAddress').value.trim(),'liquidityTokenB');
+    if(info){updateTokenDisplay('tokenB',info); await fetchPoolState(); updateLiquidityPreview();}
+}
+
+function setFromToken(a){document.getElementById('fromTokenAddress').value=a;queryFromToken();}
+function setToToken(a){document.getElementById('toTokenAddress').value=a;queryToToken();}
+function setLiquidityTokenA(a){document.getElementById('tokenAAddress').value=a;queryLiquidityTokenA();}
+function setLiquidityTokenB(a){document.getElementById('tokenBAddress').value=a;queryLiquidityTokenB();}
+function setRemoveTokenA(a){document.getElementById('removeTokenAAddress').value=a;}
+function setRemoveTokenB(a){document.getElementById('removeTokenBAddress').value=a;}
+
+/* ================================================================
+   Quote
+   ================================================================ */
+let quoteValid=false;
+async function updateQuote() {
+    if (!tronWeb || !userAddress) return;
+
+    const amt = document.getElementById('fromAmount').value;
+    const fi = tokenCache['fromToken'];
+    const ti = tokenCache['toToken'];
+
+    const clear = () => {
+        document.getElementById('toAmount').value = '';
+        document.getElementById('rate').textContent = '-';
+        document.getElementById('minReceived').textContent = '-';
+        document.getElementById('priceImpact').textContent = '-';
+        document.getElementById('swapBtn').disabled = true;
+        quoteValid = false;
+    };
+
+    if (!amt || parseFloat(amt) <= 0 || !fi || !ti) {
+        clear();
+        return;
+    }
+
+    try {
+        const wtrx = await getWtrx();
+        const amtIn = parseUnits(amt, fi.decimals);
+
+        // Use hex addresses for path to avoid TronWeb base58→hex encoding issues with address[]
+        const fromBase58 = isTrx(fi.address) ? wtrx : fi.address;
+        const toBase58   = isTrx(ti.address) ? wtrx : ti.address;
+        const fromHex = tronWeb.address.toHex(fromBase58);
+        const toHex   = tronWeb.address.toHex(toBase58);
+
+        let outRaw = 0n;
+
+        // Step 1: Try getAmountsOut with hex path
+        try {
+            const router = await tronWeb.contract(V2_ROUTER_ABI, CONFIG.V2_ROUTER);
+            const r = await router.getAmountsOut(amtIn.toString(), [fromHex, toHex]).call();
+            if (r && r.length >= 2) {
+                const last = r[r.length - 1];
+                const val = typeof last === 'object' && last._hex ? BigInt(last._hex) : BigInt(last.toString());
+                if (val > 0n) outRaw = val;
+            }
+        } catch (e) {
+            console.warn('getAmountsOut (hex):', e.message);
+        }
+
+        // Step 2: Fallback – query reserves directly from pair contract
+        if (outRaw <= 0n) {
+            try {
+                const factory = await tronWeb.contract(V2_FACTORY_ABI, CONFIG.V2_FACTORY);
+                const pairAddr = String(await factory.getPair(fromHex, toHex).call());
+                if (!zeroPairAddress(pairAddr)) {
+                    const pair = await tronWeb.contract(V2_PAIR_ABI, pairAddr);
+                    const [resR, tok0R] = await Promise.all([
+                        pair.getReserves().call(),
+                        pair.token0().call()
+                    ]);
+                    const r0 = BigInt(resR._reserve0.toString());
+                    const r1 = BigInt(resR._reserve1.toString());
+                    if (r0 > 0n && r1 > 0n) {
+                        const tok0Hex = String(tok0R).toLowerCase();
+                        const isFrom0 = tok0Hex === fromHex.toLowerCase();
+                        const resIn  = isFrom0 ? r0 : r1;
+                        const resOut = isFrom0 ? r1 : r0;
+                        // Uniswap V2 formula: amountOut = (amtIn * 997 * resOut) / (resIn * 1000 + amtIn * 997)
+                        const amtInWithFee = amtIn * 997n;
+                        outRaw = (amtInWithFee * resOut) / (resIn * 1000n + amtInWithFee);
+                    }
+                }
+            } catch (e2) {
+                console.warn('reserve fallback:', e2.message);
+            }
+        }
+
+        if (outRaw <= 0n) {
+            clear();
+            document.getElementById('priceImpact').textContent = '无流动性';
+            document.getElementById('rate').textContent = fi.symbol + '/' + ti.symbol + ' 无流动性池';
+            showStatus('⚠️ ' + fi.symbol + '/' + ti.symbol + ' 交易对无流动性，无法兑换', 'warning', 8000);
+            return;
+        }
+
+        const dispOut = formatUnits(outRaw, ti.decimals, 6);
+        document.getElementById('toAmount').value = dispOut;
+
+        const inN = parseFloat(amt);
+        const outN = parseFloat(dispOut);
+        document.getElementById('rate').textContent = inN > 0 ? ('1 ' + fi.symbol + ' ≈ ' + (outN / inN).toFixed(6) + ' ' + ti.symbol) : '-';
+
+        const minRaw = applySlip(outRaw, slippage);
+        document.getElementById('minReceived').textContent = formatUnits(minRaw, ti.decimals, 6) + ' ' + ti.symbol;
+        document.getElementById('priceImpact').textContent = '< 1%';
+
+        quoteValid = true;
+        document.getElementById('swapBtn').disabled = false;
+    } catch (e) {
+        console.error('updateQuote:', e);
+        clear();
+    }
+}
+
+/* ================================================================
+   Approval helpers
+   ================================================================ */
+async function ensureApproval(tokenAddr, spender, amount, label='代币') {
+    if(isTrx(tokenAddr)) return null;
+    const c=await tronWeb.contract(TRC20_ABI,tokenAddr);
+    let al=0n;
+    try{al=BigInt((await c.allowance(userAddress,spender).call()).toString());}catch(e){}
+    if(al>=amount) return null;
+    showStatus(`🔑 授权 ${label}...`,'info');
+    const tx=await c.approve(spender,amount.toString()).send({feeLimit:CONFIG.FEE_LIMIT,callValue:0});
+    showStatus(`✅ ${label} 授权成功`,'success',3000);
+    await sleep(2500);
+    return tx;
+}
+
+async function ensureLPApproval(pairAddr, spender, amount) {
+    const p=await tronWeb.contract(V2_PAIR_ABI,pairAddr);
+    let al=0n;
+    try{al=BigInt((await p.allowance(userAddress,spender).call()).toString());}catch(e){}
+    if(al>=amount) return null;
+    showStatus('🔑 授权 LP 代币...','info');
+    const tx=await p.approve(spender,amount.toString()).send({feeLimit:CONFIG.FEE_LIMIT,callValue:0});
+    showStatus('✅ LP 授权成功','success',3000);
+    await sleep(2500);
+    return tx;
+}
+
+/* ================================================================
+   SWAP
+   ================================================================ */
+async function executeSwap() {
+    if(!tronWeb||!userAddress){showStatus('❌ 请先连接鑰包','error');return;}
+    const fi=tokenCache['fromToken'], ti=tokenCache['toToken'];
+    const amt=document.getElementById('fromAmount').value;
+    if(!fi||!ti){showStatus('⚠️ 请先查询两个代币信息','warning');return;}
+    if(!quoteValid){showStatus('⚠️ 当前交易对无流动性，无法兑换','warning');return;}
+    if(fi.address===ti.address){showStatus('⚠️ 请选择不同的代币','warning');return;}
+    if(!amt||parseFloat(amt)<=0){showStatus('⚠️ 请输入兑换数量','warning');return;}
+    let amtIn;
+    try{amtIn=parseUnits(amt,fi.decimals);}catch(e){showStatus('⚠️ 数量格式错误','warning');return;}
+    const balRaw=BigInt(fi.balanceRaw||'0');
+    if(amtIn>balRaw){showStatus('⚠️ 余额不足 (需 '+amt+' '+fi.symbol+'，有 '+fi.balance+')','error');return;}
+    const btn=document.getElementById('swapBtn');
+    btn.disabled=true;
+    try {
+        showStatus('⏳ 准备交易...','info');
+        const deadline=Math.floor(Date.now()/1000)+1200;
+        const dispOut=document.getElementById('toAmount').value||'0';
+        const outRaw=parseUnits(dispOut||'0',ti.decimals);
+        const outMin=applySlip(outRaw,slippage);
+        const txid=await execV2(fi,ti,amtIn,outMin,deadline);
+        if(txid){
+            showStatus('⏳ 交易已提交，等待链上确认...','info');
+            const receipt=await checkTxResult(txid);
+            if(receipt===true){
+                showStatus('✅ 兑换成功！ <a href="'+CONFIG.EXPLORER+'/#/transaction/'+txid+'" target="_blank" style="color:var(--success)">查看交易</a>','success',15000);
+                addTx('Swap',amt+' '+fi.symbol+' → '+dispOut+' '+ti.symbol,'V2',txid,'success');
+                queryFromToken(); queryToToken();
+            } else if(receipt===false){
+                showStatus('❌ 链上执行失败(Revert)！尝试加大滑点或检查流动性。 <a href="'+CONFIG.EXPLORER+'/#/transaction/'+txid+'" target="_blank" style="color:var(--error)">查看详情</a>','error',20000);
+                addTx('Swap',amt+' '+fi.symbol+' → '+dispOut+' '+ti.symbol,'V2',txid,'fail');
+            } else {
+                showStatus('⚠️ 交易已提交，状态待确认。 <a href="'+CONFIG.EXPLORER+'/#/transaction/'+txid+'" target="_blank" style="color:var(--accent)">查看交易</a>','warning',15000);
+                addTx('Swap',amt+' '+fi.symbol+' → '+dispOut+' '+ti.symbol,'V2',txid,'pending');
+            }
+        } else showStatus('❌ 交易失败，未获得哈希','error');
+    } catch(e) {
+        console.error('swap error:',e);
+        let msg=e.message||'未知错误';
+        if(msg.includes('REVERT')||msg.includes('revert')) msg='交易被拒绝：可能滑点过小或流动性不足，建议将滑点调至 1%-3%';
+        else if(msg.includes('bandwidth')) msg='带宽不足，请质押 TRX 或保证足够 TRX 支付手续费';
+        showStatus('❌ '+msg,'error');
+    } finally {btn.disabled=false;}
+}
+
+async function execV2(fi, ti, amtIn, outMin, deadline) {
+    const router=await tronWeb.contract(V2_ROUTER_ABI,CONFIG.V2_ROUTER);
+    const wtrx=await getWtrx();
+    const fTrx=isTrx(fi.address), tTrx=isTrx(ti.address);
+    // PandaTool fix: use hex addresses for path[] — avoids TronWeb address[] encoding issues on Nile
+    const wtrxHex = tronWeb.address.toHex(wtrx);
+    const fromHex = fTrx ? wtrxHex : tronWeb.address.toHex(fi.address);
+    const toHex   = tTrx ? wtrxHex : tronWeb.address.toHex(ti.address);
+    if(fTrx){
+        return await router.swapExactETHForTokens(outMin.toString(),[fromHex,toHex],userAddress,deadline)
+            .send({callValue:amtIn.toString(),feeLimit:CONFIG.FEE_LIMIT});
+    }
+    if(tTrx){
+        await ensureApproval(fi.address,CONFIG.V2_ROUTER,amtIn,fi.symbol);
+        return await router.swapExactTokensForETH(amtIn.toString(),outMin.toString(),[fromHex,toHex],userAddress,deadline)
+            .send({feeLimit:CONFIG.FEE_LIMIT});
+    }
+    await ensureApproval(fi.address,CONFIG.V2_ROUTER,amtIn,fi.symbol);
+    return await router.swapExactTokensForTokens(amtIn.toString(),outMin.toString(),[fromHex,toHex],userAddress,deadline)
+        .send({feeLimit:CONFIG.FEE_LIMIT});
+}
+
+/* ================================================================
+   ADD LIQUIDITY  (V2 only / auto-ratio sync)
+   ================================================================ */
+
+// Pool state for add-liquidity panel
+const addLiqPool = {
+    exists: false,
+    pairAddress: null,
+    reserve0: 0n,
+    reserve1: 0n,
+    token0IsA: true,
+    totalSupply: 0n,
+    lastEdited: 'A',
+    loading: false
+};
+
+function zeroPairAddress(addr) {
+    const v = String(addr || '').trim();
+    return !v || v === '0x0000000000000000000000000000000000000000' || v === '410000000000000000000000000000000000000000' || v === 'T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb';
+}
+
+function currentPoolRates() {
+    const ta = tokenCache['liquidityTokenA'];
+    const tb = tokenCache['liquidityTokenB'];
+    if (!ta || !tb || !addLiqPool.exists || addLiqPool.reserve0 <= 0n || addLiqPool.reserve1 <= 0n) return null;
+
+    const rA = addLiqPool.token0IsA ? addLiqPool.reserve0 : addLiqPool.reserve1;
+    const rB = addLiqPool.token0IsA ? addLiqPool.reserve1 : addLiqPool.reserve0;
+    const amountAFloat = Number(formatUnits(rA, ta.decimals, 12));
+    const amountBFloat = Number(formatUnits(rB, tb.decimals, 12));
+    if (!isFinite(amountAFloat) || !isFinite(amountBFloat) || amountAFloat <= 0) return null;
+
+    return {
+        reserveA: rA,
+        reserveB: rB,
+        reserveAFloat: amountAFloat,
+        reserveBFloat: amountBFloat,
+        ratioBPerA: amountBFloat / amountAFloat,
+        ratioAPerB: amountAFloat / amountBFloat
+    };
+}
+
+async function fetchPoolState() {
+    const ta = tokenCache['liquidityTokenA'];
+    const tb = tokenCache['liquidityTokenB'];
+    if (!ta || !tb || !tronWeb || !userAddress) return;
+
+    const poolStatusEl = document.getElementById('poolStatus');
+    const poolRatioEl = document.getElementById('poolRatio');
+    const poolShareEl = document.getElementById('poolShare');
+
+    try {
+        addLiqPool.loading = true;
+        const wtrx = await getWtrx();
+        const addrA = isTrx(ta.address) ? wtrx : ta.address;
+        const addrB = isTrx(tb.address) ? wtrx : tb.address;
+
+        const factory = await tronWeb.contract(V2_FACTORY_ABI, CONFIG.V2_FACTORY);
+        const pairAddr = String(await factory.getPair(addrA, addrB).call());
+
+        if (zeroPairAddress(pairAddr)) {
+            addLiqPool.exists = false;
+            addLiqPool.pairAddress = null;
+            addLiqPool.reserve0 = 0n;
+            addLiqPool.reserve1 = 0n;
+            addLiqPool.token0IsA = true;
+            addLiqPool.totalSupply = 0n;
+
+            poolStatusEl.textContent = '新池子（首次创建）';
+            poolStatusEl.style.color = 'var(--accent)';
+            poolRatioEl.textContent = '首次创建时由你设定初始价格';
+            poolShareEl.textContent = '100%';
+            updateLiquidityPreview();
+            return;
+        }
+
+        const pair = await tronWeb.contract(V2_PAIR_ABI, pairAddr);
+        const [resR, tok0R, supR] = await Promise.all([
+            pair.getReserves().call(),
+            pair.token0().call(),
+            pair.totalSupply().call()
+        ]);
+
+        const r0 = BigInt(resR._reserve0.toString());
+        const r1 = BigInt(resR._reserve1.toString());
+        const totalSupply = BigInt(supR.toString());
+
+        // token0 compare must use hex-normalized address
+        const hexA = tronWeb.address.toHex(addrA).toLowerCase();
+        const tok0 = String(tok0R).toLowerCase();
+        const token0IsA = tok0 === hexA;
+
+        addLiqPool.exists = true;
+        addLiqPool.pairAddress = pairAddr;
+        addLiqPool.reserve0 = r0;
+        addLiqPool.reserve1 = r1;
+        addLiqPool.token0IsA = token0IsA;
+        addLiqPool.totalSupply = totalSupply;
+
+        const rA = token0IsA ? r0 : r1;
+        const rB = token0IsA ? r1 : r0;
+
+        const ratio = rA > 0n
+            ? (Number(formatUnits(rB, tb.decimals, 12)) / Number(formatUnits(rA, ta.decimals, 12))).toFixed(6)
+            : '-';
+
+        poolStatusEl.textContent = '池子已存在';
+        poolStatusEl.style.color = 'var(--success)';
+        poolRatioEl.textContent = '1 ' + ta.symbol + ' = ' + ratio + ' ' + tb.symbol;
+        updateLiquidityPreview();
+    } catch (e) {
+        console.warn('fetchPoolState:', e.message);
+        addLiqPool.exists = false;
+        addLiqPool.pairAddress = null;
+        addLiqPool.reserve0 = 0n;
+        addLiqPool.reserve1 = 0n;
+        addLiqPool.token0IsA = true;
+        addLiqPool.totalSupply = 0n;
+
+        const poolStatusEl = document.getElementById('poolStatus');
+        const poolRatioEl = document.getElementById('poolRatio');
+        const poolShareEl = document.getElementById('poolShare');
+
+        poolStatusEl.textContent = '查询失败';
+        poolStatusEl.style.color = 'var(--error)';
+        poolRatioEl.textContent = '-';
+        poolShareEl.textContent = '-';
+    } finally {
+        addLiqPool.loading = false;
+    }
+}
+
+function updateLiquidityPreview() {
+    const ta = tokenCache['liquidityTokenA'];
+    const tb = tokenCache['liquidityTokenB'];
+    if (!ta || !tb) return;
+
+    const aEl = document.getElementById('tokenAAmount');
+    const bEl = document.getElementById('tokenBAmount');
+    const poolStatusEl = document.getElementById('poolStatus');
+    const poolRatioEl = document.getElementById('poolRatio');
+    const poolShareEl = document.getElementById('poolShare');
+
+    let aa = parseFloat(aEl.value || '0');
+    let ab = parseFloat(bEl.value || '0');
+
+    if (addLiqPool.exists) {
+        const rates = currentPoolRates();
+        if (!rates) {
+            poolStatusEl.textContent = '池子已存在';
+            poolRatioEl.textContent = '-';
+            poolShareEl.textContent = '-';
+            return;
+        }
+
+        if (addLiqPool.lastEdited === 'A' && aa > 0) {
+            ab = aa * rates.ratioBPerA;
+            bEl.value = ab.toFixed(6);
+        } else if (addLiqPool.lastEdited === 'B' && ab > 0) {
+            aa = ab * rates.ratioAPerB;
+            aEl.value = aa.toFixed(6);
+        } else if (aa > 0 && !ab) {
+            ab = aa * rates.ratioBPerA;
+            bEl.value = ab.toFixed(6);
+        } else if (ab > 0 && !aa) {
+            aa = ab * rates.ratioAPerB;
+            aEl.value = aa.toFixed(6);
+        }
+
+        if (aa > 0 && ab > 0 && addLiqPool.totalSupply > 0n) {
+            const rA = rates.reserveA;
+            const rB = rates.reserveB;
+            const dA = parseUnits(String(aa), ta.decimals);
+            const dB = parseUnits(String(ab), tb.decimals);
+
+            const liqByA = (dA * addLiqPool.totalSupply) / rA;
+            const liqByB = (dB * addLiqPool.totalSupply) / rB;
+            const minted = liqByA < liqByB ? liqByA : liqByB;
+
+            const sharePct = Number(minted) > 0
+                ? (Number(minted) / Number(addLiqPool.totalSupply + minted)) * 100
+                : 0;
+
+            poolShareEl.textContent = sharePct.toFixed(2) + '%';
+        } else {
+            poolShareEl.textContent = '-';
+        }
+
+        poolStatusEl.textContent = '池子已存在';
+        poolStatusEl.style.color = 'var(--success)';
+        poolRatioEl.textContent = '1 ' + ta.symbol + ' = ' + rates.ratioBPerA.toFixed(6) + ' ' + tb.symbol + '（自动按比例补齐）';
+        return;
+    }
+
+    // New pool: user defines the initial price.
+    if (aa > 0 && ab > 0) {
+        poolStatusEl.textContent = '新池子（首次创建）';
+        poolStatusEl.style.color = 'var(--accent)';
+        poolRatioEl.textContent = '1 ' + ta.symbol + ' = ' + (ab / aa).toFixed(6) + ' ' + tb.symbol + '（初始价格）';
+        poolShareEl.textContent = '100%';
+    } else {
+        poolStatusEl.textContent = '新池子（首次创建）';
+        poolStatusEl.style.color = 'var(--accent)';
+        poolRatioEl.textContent = '请输入 A / B 数量以设定初始价格';
+        poolShareEl.textContent = '100%';
+    }
+}
+
+async function addLiquidity() {
+    if (!tronWeb || !userAddress) {
+        showStatus('❌ 请先连接钱包', 'error');
+        return;
+    }
+
+    const ta = tokenCache['liquidityTokenA'];
+    const tb = tokenCache['liquidityTokenB'];
+    const aRaw = document.getElementById('tokenAAmount').value;
+    const bRaw = document.getElementById('tokenBAmount').value;
+
+    if (!ta || !tb) {
+        showStatus('⚠️ 请先查询两个代币', 'warning');
+        return;
+    }
+    if (ta.address === tb.address) {
+        showStatus('⚠️ 两个代币不能相同', 'warning');
+        return;
+    }
+
+    const aNum = parseFloat(aRaw);
+    const bNum = parseFloat(bRaw);
+    if (!aRaw || !bRaw || !isFinite(aNum) || !isFinite(bNum) || aNum <= 0 || bNum <= 0) {
+        showStatus('⚠️ 请输入有效数量', 'warning');
+        return;
+    }
+
+    const btn = document.getElementById('addLiquidityBtn');
+    btn.disabled = true;
+
+    try {
+        const router = await tronWeb.contract(V2_ROUTER_ABI, CONFIG.V2_ROUTER);
+        const deadline = Math.floor(Date.now() / 1000) + 1200;
+
+        let amountADesired = parseUnits(aRaw, ta.decimals);
+        let amountBDesired = parseUnits(bRaw, tb.decimals);
+
+        // Existing pool: recompute counterpart from current on-chain reserve ratio.
+        if (addLiqPool.exists) {
+            const rates = currentPoolRates();
+            if (!rates) throw new Error('池子状态异常，无法读取储备');
+
+            if (addLiqPool.lastEdited === 'A') {
+                amountBDesired = (amountADesired * rates.reserveB) / rates.reserveA;
+                document.getElementById('tokenBAmount').value = formatUnits(amountBDesired, tb.decimals, 6);
+            } else if (addLiqPool.lastEdited === 'B') {
+                amountADesired = (amountBDesired * rates.reserveA) / rates.reserveB;
+                document.getElementById('tokenAAmount').value = formatUnits(amountADesired, ta.decimals, 6);
+            } else {
+                amountBDesired = (amountADesired * rates.reserveB) / rates.reserveA;
+                document.getElementById('tokenBAmount').value = formatUnits(amountBDesired, tb.decimals, 6);
+            }
+        }
+
+        const amountAMin = applySlip(amountADesired, slippage);
+        const amountBMin = applySlip(amountBDesired, slippage);
+
+        const aTrx = isTrx(ta.address);
+        const bTrx = isTrx(tb.address);
+
+        if (aTrx && bTrx) throw new Error('TRX 不能和 TRX 配对');
+
+        let txid;
+        if (!aTrx && !bTrx) {
+            await ensureApproval(ta.address, CONFIG.V2_ROUTER, amountADesired, ta.symbol);
+            await ensureApproval(tb.address, CONFIG.V2_ROUTER, amountBDesired, tb.symbol);
+
+            txid = await router.addLiquidity(
+                ta.address,
+                tb.address,
+                amountADesired.toString(),
+                amountBDesired.toString(),
+                amountAMin.toString(),
+                amountBMin.toString(),
+                userAddress,
+                deadline
+            ).send({ feeLimit: CONFIG.FEE_LIMIT });
+        } else {
+            const tokenAddr = aTrx ? tb.address : ta.address;
+            const tokenDesired = aTrx ? amountBDesired : amountADesired;
+            const tokenMin = aTrx ? amountBMin : amountAMin;
+            const trxDesired = aTrx ? amountADesired : amountBDesired;
+            const trxMin = aTrx ? amountAMin : amountBMin;
+
+            await ensureApproval(tokenAddr, CONFIG.V2_ROUTER, tokenDesired, aTrx ? tb.symbol : ta.symbol);
+
+            txid = await router.addLiquidityETH(
+                tokenAddr,
+                tokenDesired.toString(),
+                tokenMin.toString(),
+                trxMin.toString(),
+                userAddress,
+                deadline
+            ).send({ callValue: trxDesired.toString(), feeLimit: CONFIG.FEE_LIMIT });
+        }
+
+        if (txid) {
+            showStatus('⏳ 交易已提交，等待确认...', 'info');
+            const receipt = await checkTxResult(txid);
+            const shownA = formatUnits(amountADesired, ta.decimals, 6);
+            const shownB = formatUnits(amountBDesired, tb.decimals, 6);
+
+            if (receipt === true) {
+                showStatus('✅ 流动性添加成功！ <a href="' + CONFIG.EXPLORER + '/#/transaction/' + txid + '" target="_blank" style="color:var(--success)">查看交易</a>', 'success', 15000);
+                addTx('Add Liquidity', shownA + ' ' + ta.symbol + ' + ' + shownB + ' ' + tb.symbol, 'V2', txid, 'success');
+                await sleep(1500);
+                await fetchPoolState();
+                queryLiquidityTokenA();
+                queryLiquidityTokenB();
+            } else if (receipt === false) {
+                showStatus('❌ 流动性添加失败(Revert)。 <a href="' + CONFIG.EXPLORER + '/#/transaction/' + txid + '" target="_blank" style="color:var(--error)">查看详情</a>', 'error', 20000);
+                addTx('Add Liquidity', shownA + ' ' + ta.symbol + ' + ' + shownB + ' ' + tb.symbol, 'V2', txid, 'fail');
+            } else {
+                showStatus('⚠️ 交易已提交，状态待确认。 <a href="' + CONFIG.EXPLORER + '/#/transaction/' + txid + '" target="_blank" style="color:var(--accent)">查看交易</a>', 'warning', 15000);
+                addTx('Add Liquidity', shownA + ' ' + ta.symbol + ' + ' + shownB + ' ' + tb.symbol, 'V2', txid, 'pending');
+            }
+        }
+    } catch (e) {
+        console.error('addLiquidity:', e);
+        showStatus('❌ ' + (e.message || '未知错误'), 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+/* ================================================================
+   REMOVE LIQUIDITY
+   ================================================================ */
+async function queryLPBalance() {
+    if(!tronWeb||!userAddress){showStatus('❌ 请先连接钱包','error');return;}
+    const addrA=norm(document.getElementById('removeTokenAAddress').value.trim());
+    const addrB=norm(document.getElementById('removeTokenBAddress').value.trim());
+    if(!addrA||!addrB){showStatus('⚠️ 请填写两个代币地址','warning');return;}
+    if(addrA===addrB){showStatus('⚠️ 两个代币不能相同','warning');return;}
+    const btn=document.getElementById('queryLPBtn');
+    btn.disabled=true;
+    showStatus('🔍 查询 LP...','info');
+    try {
+        const [tiA,tiB]=[
+            await queryTokenInfo(addrA,'removeTokenA'),
+            await queryTokenInfo(addrB,'removeTokenB')
+        ];
+        if(!tiA||!tiB){showStatus('❌ 代币信息获取失败','error');return;}
+        const wtrx=await getWtrx();
+        const pathA=isTrx(addrA)?wtrx:addrA, pathB=isTrx(addrB)?wtrx:addrB;
+        const factory=await tronWeb.contract(V2_FACTORY_ABI,CONFIG.V2_FACTORY);
+        let pairAddr;
+        try{pairAddr=String(await factory.getPair(pathA,pathB).call());}
+        catch(e){showStatus('❌ getPair 失败: '+e.message,'error');return;}
+
+        const zero=['410000000000000000000000000000000000000000','T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb'];
+        if(!pairAddr||zero.includes(pairAddr)){
+            showStatus('❌ 该交易对流动性池不存在','error');
+            document.getElementById('lpInfoBox').style.display='none';
+            document.getElementById('removeLiquidityForm').style.display='none';
+            return;
+        }
+        const pair=await tronWeb.contract(V2_PAIR_ABI,pairAddr);
+        const [resR,tok0R,supR,balR]=await Promise.all([
+            pair.getReserves().call(),
+            pair.token0().call(),
+            pair.totalSupply().call(),
+            pair.balanceOf(userAddress).call()
+        ]);
+        const lpBal=BigInt(balR.toString()), total=BigInt(supR.toString());
+        const r0=BigInt(resR._reserve0.toString()), r1=BigInt(resR._reserve1.toString());
+        const tok0=String(tok0R);
+        const hexA=tronWeb.address.toHex(pathA).toLowerCase();
+        const tok0IsA=tok0.toLowerCase()===hexA;
+
+        lpState={pairAddress:pairAddr,lpBalanceRaw:lpBal,lpBalance:parseFloat(formatUnits(lpBal,18,6)),
+            totalSupply:total,reserve0:r0,reserve1:r1,token0IsA:tok0IsA,tokenAInfo:tiA,tokenBInfo:tiB};
+
+        document.getElementById('lpPairAddress').textContent=pairAddr;
+        document.getElementById('lpBalance').textContent=lpState.lpBalance+' LP';
+        const rA=tok0IsA?r0:r1, rB=tok0IsA?r1:r0;
+        document.getElementById('lpReserveA').textContent=formatUnits(rA,tiA.decimals,4)+' '+tiA.symbol;
+        document.getElementById('lpReserveB').textContent=formatUnits(rB,tiB.decimals,4)+' '+tiB.symbol;
+        document.getElementById('lpInfoBox').style.display='block';
+
+        if(lpBal<=0n){
+            showStatus('⚠️ 此池中无流动性','warning');
+            document.getElementById('removeLiquidityForm').style.display='none';
+        } else {
+            showStatus(`✅ LP 余额: ${lpState.lpBalance}`,'success',4000);
+            document.getElementById('removeLiquidityForm').style.display='block';
+            updateRemovePreview();
+        }
+    } catch(e){
+        console.error('queryLP:',e);
+        showStatus('❌ '+e.message,'error');
+    } finally{btn.disabled=false;}
+}
+
+function setRemovePct(p){
+    document.getElementById('removeSlider').value=p;
+    document.getElementById('removePercent').textContent=p+'%';
+    updateRemovePreview();
+}
+
+function updateRemovePreview(){
+    const pct=parseInt(document.getElementById('removeSlider').value);
+    document.getElementById('removePercent').textContent=pct+'%';
+    if(!lpState.pairAddress||lpState.lpBalanceRaw<=0n||lpState.totalSupply<=0n) return;
+    const burn=(lpState.lpBalanceRaw*BigInt(pct))/100n;
+    const rA=lpState.token0IsA?lpState.reserve0:lpState.reserve1;
+    const rB=lpState.token0IsA?lpState.reserve1:lpState.reserve0;
+    const expA=(burn*rA)/lpState.totalSupply, expB=(burn*rB)/lpState.totalSupply;
+    document.getElementById('expectedA').textContent=formatUnits(expA,lpState.tokenAInfo.decimals,6)+' '+lpState.tokenAInfo.symbol;
+    document.getElementById('expectedB').textContent=formatUnits(expB,lpState.tokenBInfo.decimals,6)+' '+lpState.tokenBInfo.symbol;
+    document.getElementById('burnLP').textContent=formatUnits(burn,18,6)+' LP';
+}
+
+async function removeLiquidity(){
+    if(!tronWeb||!userAddress){showStatus('❌ 请先连接钱包','error');return;}
+    if(!lpState.pairAddress||lpState.lpBalanceRaw<=0n){showStatus('⚠️ 请先查询 LP','warning');return;}
+    const pct=parseInt(document.getElementById('removeSlider').value);
+    const burn=(lpState.lpBalanceRaw*BigInt(pct))/100n;
+    if(burn<=0n){showStatus('⚠️ 数量为 0','warning');return;}
+    const tiA=lpState.tokenAInfo, tiB=lpState.tokenBInfo;
+    const rA=lpState.token0IsA?lpState.reserve0:lpState.reserve1;
+    const rB=lpState.token0IsA?lpState.reserve1:lpState.reserve0;
+    const expA=(burn*rA)/lpState.totalSupply, expB=(burn*rB)/lpState.totalSupply;
+    const mnA=applySlip(expA,slippage), mnB=applySlip(expB,slippage);
+    const btn=document.getElementById('removeLiquidityBtn');
+    btn.disabled=true;
+    try {
+        showStatus('🔑 授权 LP...','info');
+        await ensureLPApproval(lpState.pairAddress,CONFIG.V2_ROUTER,burn);
+        showStatus('⏳ 移除流动性...','info');
+        const router=await tronWeb.contract(V2_ROUTER_ABI,CONFIG.V2_ROUTER);
+        const dl=Math.floor(Date.now()/1000)+1200;
+        const aTrx=isTrx(tiA.address), bTrx=isTrx(tiB.address);
+        let txid;
+        if(!aTrx&&!bTrx){
+            txid=await router.removeLiquidity(tiA.address,tiB.address,burn.toString(),mnA.toString(),mnB.toString(),userAddress,dl)
+                .send({feeLimit:CONFIG.FEE_LIMIT});
+        } else {
+            const ti=aTrx?tiB:tiA, tMn=aTrx?mnB:mnA, trxMn=aTrx?mnA:mnB;
+            txid=await router.removeLiquidityETH(ti.address,burn.toString(),tMn.toString(),trxMn.toString(),userAddress,dl)
+                .send({feeLimit:CONFIG.FEE_LIMIT});
+        }
+        if(txid){
+            showStatus(`✅ 移除成功！<a href="${CONFIG.EXPLORER}/#/transaction/${txid}" target="_blank" style="color:var(--success)">查看</a>`,'success',15000);
+            addTx('Remove Liquidity',`${pct}% ${tiA.symbol}/${tiB.symbol}`,'V2',txid);
+            await sleep(2000); queryLPBalance();
+        }
+    } catch(e){
+        console.error('removeLiquidity:',e);
+        let msg=e.message||'未知错误';
+        if(msg.includes('REVERT')) msg='交易被拒绝，尝试增大滑点';
+        showStatus('❌ '+msg,'error');
+    } finally{btn.disabled=false;}
+}
+
+/* ================================================================
+   Transaction receipt checker
+   ================================================================ */
+async function checkTxResult(txid, retries, intervalMs){
+    retries=retries||8; intervalMs=intervalMs||2500;
+    for(var i=0;i<retries;i++){
+        try{
+            var info=await tronWeb.trx.getTransaction(txid);
+            if(info&&info.ret&&info.ret[0]){
+                var code=info.ret[0].contractRet;
+                if(code==='SUCCESS') return true;
+                if(code) return false;
+            }
+        } catch(e){console.warn('receipt check:',e.message);}
+        await sleep(intervalMs);
+    }
+    return null;
+}
+
+/* ================================================================
+   Transaction list
+   ================================================================ */
+// PandaTool: transaction record helper
+function addTx(type, details, ver, txid, status){
+    status=status||'success';
+    var list=document.getElementById('transactionList');
+    if(list.querySelector('[data-empty]')) list.innerHTML='';
+    var icons={success:'✅ 成功',fail:'❌ 失败(Revert)',pending:'⏳ 待确认'};
+    var colors={success:'var(--success)',fail:'var(--error)',pending:'var(--accent)'};
+    var icon=icons[status]||icons.success, color=colors[status]||colors.success;
+    var d=document.createElement('div');
+    d.className='info-box'; d.style.marginBottom='10px';
+    d.innerHTML='<div class="info-row"><span class="info-label">📝 '+type+' ('+ver+')</span><span class="info-value" style="color:'+color+'">'+icon+'</span></div>'
+        +'<div class="info-row"><span class="info-label" style="font-size:10px">'+details+'</span><span class="info-value" style="font-size:10px">'+new Date().toLocaleTimeString()+'</span></div>'
+        +'<div class="info-row"><span class="info-label" style="font-size:10px">TxID:</span><a href="'+CONFIG.EXPLORER+'/#/transaction/'+txid+'" target="_blank" style="font-size:9px;color:var(--secondary);word-break:break-all">'+txid.slice(0,24)+'...</a></div>';
+    list.insertBefore(d,list.firstChild);
+    while(list.children.length>5) list.removeChild(list.lastChild);
+}
+
+/* ================================================================
+   Status
+   ================================================================ */
+let stTimer=null;
+function showStatus(msg, type='info', dur=5000){
+    const el=document.getElementById('statusMessage');
+    el.className='status-message status-'+type;
+    el.innerHTML=type==='info'?`<span class="spinner"></span>${msg}`:msg;
+    if(stTimer) clearTimeout(stTimer);
+    if(type!=='info'&&dur>0) stTimer=setTimeout(()=>{el.innerHTML='';el.className='';},dur);
+}
+
+/* ================================================================
+   Event listeners
+   ================================================================ */
+function setup(){
+    document.getElementById('connectWallet').addEventListener('click',connectWallet);
+
+    // Tab switch
+    document.querySelectorAll('.tab[data-tab]').forEach(t=>t.addEventListener('click',()=>{
+        document.querySelectorAll('.tab[data-tab]').forEach(x=>x.classList.remove('active'));
+        t.classList.add('active');
+        const n=t.dataset.tab;
+        document.getElementById('swapPanel').style.display           =n==='swap'           ?'block':'none';
+        document.getElementById('addLiquidityPanel').style.display   =n==='addLiquidity'   ?'block':'none';
+        document.getElementById('removeLiquidityPanel').style.display=n==='removeLiquidity'?'block':'none';
+        if(n==='addLiquidity'&&tokenCache['liquidityTokenA']&&tokenCache['liquidityTokenB']){
+            fetchPoolState();
+        }
+    }));
+
+    // V2 only
+
+    // Slippage
+    document.querySelectorAll('.slippage-btn').forEach(b=>b.addEventListener('click',()=>{
+        document.querySelectorAll('.slippage-btn').forEach(x=>x.classList.remove('active'));
+        b.classList.add('active'); slippage=parseFloat(b.dataset.slippage);
+        document.getElementById('customSlippage').value='';
+        updateQuote(); updateRemovePreview();
+    }));
+    document.getElementById('customSlippage').addEventListener('input',function(){
+        const v=parseFloat(this.value);
+        if(v>0&&v<=50){
+            slippage=v;
+            document.querySelectorAll('.slippage-btn').forEach(x=>x.classList.remove('active'));
+            updateQuote(); updateRemovePreview();
+        }
+    });
+
+    // Direction swap
+    document.getElementById('swapTokens').addEventListener('click',()=>{
+        const fa=document.getElementById('fromTokenAddress').value;
+        const ta=document.getElementById('toTokenAddress').value;
+        document.getElementById('fromTokenAddress').value=ta;
+        document.getElementById('toTokenAddress').value=fa;
+        const tmp=tokenCache['fromToken'];
+        tokenCache['fromToken']=tokenCache['toToken'];
+        tokenCache['toToken']=tmp;
+        if(tokenCache['fromToken']) updateTokenDisplay('from',tokenCache['fromToken']);
+        if(tokenCache['toToken'])   updateTokenDisplay('to',tokenCache['toToken']);
+        updateQuote();
+    });
+
+    // MAX
+    document.getElementById('maxBtn').addEventListener('click',()=>{
+        const info=tokenCache['fromToken'];
+        if(info&&info.balance>0){
+            let max=info.balance;
+            if(isTrx(info.address)) max=Math.max(0,max-10);
+            document.getElementById('fromAmount').value=max;
+            updateQuote();
+        }
+    });
+
+    // Query buttons
+    document.getElementById('queryFromBtn').addEventListener('click',queryFromToken);
+    document.getElementById('queryToBtn').addEventListener('click',queryToToken);
+    document.getElementById('queryTokenABtn').addEventListener('click',queryLiquidityTokenA);
+    document.getElementById('queryTokenBBtn').addEventListener('click',queryLiquidityTokenB);
+    document.getElementById('queryLPBtn').addEventListener('click',queryLPBalance);
+
+    // Actions
+    document.getElementById('swapBtn').addEventListener('click',executeSwap);
+    document.getElementById('addLiquidityBtn').addEventListener('click',addLiquidity);
+    document.getElementById('removeLiquidityBtn').addEventListener('click',removeLiquidity);
+
+    // Inputs
+    const debounce=(fn,ms)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};};
+    document.getElementById('fromAmount').addEventListener('input',debounce(updateQuote,600));
+    document.getElementById('tokenAAmount').addEventListener('input', debounce(function(){ addLiqPool._lastEdited='A'; updateLiquidityPreview(); },400));
+    document.getElementById('tokenBAmount').addEventListener('input', debounce(function(){ addLiqPool._lastEdited='B'; updateLiquidityPreview(); },400));
+    document.getElementById('removeSlider').addEventListener('input',updateRemovePreview);
+}
+
+/* ================================================================
+   Init
+   ================================================================ */
+// PandaTool DEX — entry point (pandatool.org)
+async function init(){
+    setup();
+    if(window.tronLink&&window.tronLink.ready){
+        tronWeb=window.tronLink.tronWeb||window.tronWeb;
+        if(tronWeb&&tronWeb.defaultAddress&&tronWeb.defaultAddress.base58){
+            userAddress=tronWeb.defaultAddress.base58;
+            const btn=document.getElementById('connectWallet');
+            btn.textContent='🟢 '+userAddress.slice(0,6)+'...'+userAddress.slice(-4);
+            btn.style.background='linear-gradient(135deg,#00ff88,#00cc66)';
+            showStatus('✅ 已自动连接','success',3000);
+            setTimeout(()=>{queryFromToken();queryToToken();},800);
+        }
+    } else if(!window.tronLink){
+        showStatus('⚠️ 请安装 TronLink 钱包扩展','warning',10000);
+    }
+}
+
+window.addEventListener('load',init);
+</script>
+</body>
+</html>
