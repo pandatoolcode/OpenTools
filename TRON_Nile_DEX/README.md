@@ -6,20 +6,7 @@
 
 ## 🔗 在线演示
 
-https://pandatoolcode.github.io/pandatool-dex-tools/tron-nile-dex/
-
----
-
-## ✨ 功能说明
-
-🔄 兑换 (Swap)	TRX ↔ TRC20 以及 TRC20 ↔ TRC20 兑换
-➕ 添加流动性	支持 TRX + TRC20 及 TRC20 + TRC20 配对
-➖ 移除流动性	按比例移除 LP 仓位
-📊 实时报价	自动计算兑换数量、价格、最小接收量
-⚙️ 滑点设置	预设滑点（0.1%/0.5%/1%/3%）+ 自定义
-🔍 一键授权	交易前自动检测并执行 approve
-📦 预设代币	TRX / USDT / USDC / USDD 快捷选择
-
+https://pandatoolcode.github.io/OpenTools/TRON_Nile_DEX/
 ---
 
 ## 🧰 适用网络与钱包
