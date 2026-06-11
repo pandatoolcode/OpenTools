@@ -332,6 +332,8 @@ hr.dv{border:none;border-top:1px solid var(--b1);margin:10px 0;}
     <div style="font-size:10px;color:var(--tx3);font-family:var(--mono);margin-top:4px" id="liqBHint">填 A 数量后按比例自动计算</div>
   </div>
 
+  <div id="liqPoolHint" style="display:none;border-radius:var(--rs);padding:8px 12px;margin-bottom:10px;font-size:11px;font-family:var(--mono);line-height:1.6"></div>
+
   <div class="ibox" id="liqBox">
     <div class="irow"><span>池子当前比率</span><span class="iv" id="liqRatio">—</span></div>
     <div class="irow"><span>LP 总量</span><span class="iv" id="liqTotal">—</span></div>
@@ -487,6 +489,8 @@ const cache = {}; // token info cache
 const pickers = {};
 // Current LP being removed
 let activeRemLP = null;
+const _lpPayloads = {}; // 存储 LP 卡片数据，避免 onclick 中 JSON 引号冲突
+let _lpIdx = 0;
 
 const MAX = ethers.constants.MaxUint256;
 
@@ -500,17 +504,40 @@ function wc(addr,abi){ if(!signer) throw new Error('未连接'); return new ethe
 async function connectWallet(){
   if(!window.ethereum) return alert('请先安装 MetaMask 或其他 Web3 钱包插件！');
   try{
+    // 第一步：请求账号授权
     await window.ethereum.request({method:'eth_requestAccounts'});
-    try{ await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x61'}]}); }
-    catch(e){ if(e.code===4902) await window.ethereum.request({method:'wallet_addEthereumChain',params:[{
-      chainId:'0x61',chainName:'BSC Testnet',
-      nativeCurrency:{name:'tBNB',symbol:'tBNB',decimals:18},
-      rpcUrls:[RPC_URL],blockExplorerUrls:['https://testnet.bscscan.com']
-    }]}); }
+
+    // 第二步：切换/添加 BSC 测试网
+    try{
+      await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x61'}]});
+    }catch(e){
+      if(e.code===4902){
+        // 链不存在，先添加
+        await window.ethereum.request({method:'wallet_addEthereumChain',params:[{
+          chainId:'0x61',chainName:'BSC Testnet',
+          nativeCurrency:{name:'tBNB',symbol:'tBNB',decimals:18},
+          rpcUrls:[RPC_URL],blockExplorerUrls:['https://testnet.bscscan.com']
+        }]});
+      } else if(e.code!==4001){
+        // 4001 = 用户取消，其他错误才抛出；已在正确链时 switch 会返回 null 不报错
+        throw e;
+      }
+    }
+
+    // 第三步：切链后重新创建 provider（MetaMask 切链后需要重新实例化）
+    // 等待一小段时间让 MetaMask 完成链切换
+    await new Promise(r=>setTimeout(r,300));
     const p = new ethers.providers.Web3Provider(window.ethereum,'any');
     await p.ready;
+
+    // 第四步：验证 chainId
     const net = await p.getNetwork();
-    if(net.chainId!==CHAIN_ID) return alert(`当前网络 chainId=${net.chainId}，请切换到 BSC 测试网（Chain ID: 97）后刷新页面`);
+    if(net.chainId!==CHAIN_ID){
+      alert(`当前网络 chainId=${net.chainId}，请在 MetaMask 中手动切换到 BSC 测试网（Chain ID: 97）后重试`);
+      return;
+    }
+
+    // 第五步：初始化 signer 和账户信息
     signer  = p.getSigner();
     account = await signer.getAddress();
     const bnb = +ethers.utils.formatEther(await rpc().getBalance(account));
@@ -521,7 +548,10 @@ async function connectWallet(){
     document.getElementById('wBNB').textContent    = bnb.toFixed(4)+' tBNB';
     log('swap','✅ 钱包已连接: '+account,'ok');
     refreshAllBals();
-  }catch(e){ alert('钱包连接失败：'+e.message); }
+  }catch(e){
+    if(e.code===4001) return; // 用户主动取消，不弹错误
+    alert('钱包连接失败：'+e.message);
+  }
 }
 if(window.ethereum){
   window.ethereum.on('chainChanged',()=>location.reload());
@@ -556,6 +586,15 @@ async function tBal(addr){
 async function tAllow(addr){
   if(!account||!addr) return MAX;
   return rc(addr,ERC20_ABI).allowance(account,ROUTER_ADDR);
+}
+
+// isBnbWbnbPair: true if the pair is tBNB(null)<->WBNB or WBNB<->tBNB(null)
+function isBnbWbnbPair(inAddr, outAddr){
+  const aIsNative = (inAddr === null || inAddr === undefined);
+  const bIsNative = (outAddr === null || outAddr === undefined);
+  const aIsWBNB   = !aIsNative && inAddr.toLowerCase()  === WBNB_ADDR.toLowerCase();
+  const bIsWBNB   = !bIsNative && outAddr.toLowerCase() === WBNB_ADDR.toLowerCase();
+  return (aIsNative && bIsWBNB) || (aIsWBNB && bIsNative);
 }
 
 // Build swap path: null = tBNB (use WBNB_ADDR in path)
@@ -853,16 +892,21 @@ async function doCalc(){
     if(alertEl2) alertEl2.style.display='none';
     lastOut=null; return;
   }
-  // 同一个代币，不能 swap
-  const normIn  = inAddr  || WBNB_ADDR;
-  const normOut = outAddr || WBNB_ADDR;
+  // 同一个代币，不能 swap（先排除 wrap/unwrap 合法情况）
   const alertEl = document.getElementById('swapAlert');
-  if(normIn === normOut && !isBnbWbnbPair(inAddr,outAddr)){
-    document.getElementById('swapOutAmt').value='';
-    document.getElementById('swapBox').className='ibox';
-    document.getElementById('swapBtn').textContent='选择不同的代币';
-    if(alertEl){ alertEl.style.display='block'; alertEl.textContent='⚠️ 输入与输出代币相同，请选择不同的代币'; }
-    lastOut=null; return;
+  if(!isBnbWbnbPair(inAddr,outAddr)){
+    // 只有不是 wrap 对的时候，才做同币检测
+    // 两个 null = tBNB vs tBNB，或者同一个 ERC20 地址
+    const bothNative = (inAddr === null && outAddr === null);
+    const sameERC20  = (inAddr !== null && outAddr !== null &&
+                        inAddr.toLowerCase() === outAddr.toLowerCase());
+    if(bothNative || sameERC20){
+      document.getElementById('swapOutAmt').value='';
+      document.getElementById('swapBox').className='ibox';
+      document.getElementById('swapBtn').textContent='选择不同的代币';
+      if(alertEl){ alertEl.style.display='block'; alertEl.textContent='⚠️ 输入与输出代币相同，请选择不同的代币'; }
+      lastOut=null; return;
+    }
   }
   if(alertEl) alertEl.style.display='none';
 
@@ -1070,6 +1114,8 @@ async function calcLiqB(){
     if(zero(pairAddr)){
       document.getElementById('liqBtn').textContent='创建交易对并添加流动性';
       document.getElementById('liqBHint').textContent='新交易对，您来定初始价格，请手动填写 B 数量';
+      // 新池子：隐藏旧提示
+      const nh=document.getElementById('liqPoolHint'); if(nh) nh.style.display='none';
       document.getElementById('liqBox').className='ibox';
       // 新池子刷新 A/B 余额标签
       refreshPickerBal('liqInPicker'); refreshPickerBal('liqOutPicker');
@@ -1088,6 +1134,15 @@ async function calcLiqB(){
     const share=+frW(myLP,18)/+frW(total,18)*100;
     // Show ratio with CORRECT symbols (not BNB hardcoded)
     document.getElementById('liqBtn').textContent='追加流动性';
+    // 显示"已有池子"提示
+    const hint=document.getElementById('liqPoolHint');
+    if(hint){
+      hint.style.display='block';
+      hint.style.background='rgba(240,185,11,.08)';
+      hint.style.border='1px solid rgba(240,185,11,.3)';
+      hint.style.color='var(--acc)';
+      hint.innerHTML=`⚠️ 该交易对已存在流动性池，追加流动性须<b>按当前池子比例</b>投入，系统已自动计算 B 数量。<br>当前比率：1 ${aInfo.symbol} = ${ratio.toFixed(6)} ${bInfo.symbol}`;
+    }
     document.getElementById('liqRatio').textContent=`${ra.toFixed(4)} ${aInfo.symbol} / ${rb.toFixed(4)} ${bInfo.symbol}`;
     document.getElementById('liqTotal').textContent=(+frW(total,18)).toFixed(6)+' LP';
     document.getElementById('liqMine').textContent=(+frW(myLP,18)).toFixed(8)+' LP';
@@ -1131,21 +1186,19 @@ async function doAddLiq(){
     const allow=await tAllow(bAddr);
     if(!allow.gte(toW(amtB,bInfo.decimals))) bad.push(bInfo.symbol);
   }
-  // 余额校验
-  const balChecks=[];
-  if(aAddr!==undefined){
-    const bA=await tBal(aAddr);
-    if(bA.lt(wA)) balChecks.push(aInfo.symbol+'（余额不足）');
-  }
-  if(bAddr!==undefined){
-    const bB=await tBal(bAddr);
-    if(bB.lt(wB)) balChecks.push(bInfo.symbol+'（余额不足）');
-  }
-  if(balChecks.length){ log('liq','❌ '+balChecks.join(' 、 ')+'，请检查余额','err'); return; }
-  if(bad.length){ log('liq','❌ '+bad.join(' 和 ')+' 尚未授权，请先点击 Approve 按钮','err'); return; }
+  if(bad.length){ log('liq','❌ '+bad.join(' 和 ')+' 尚未授权，请先点击 Authorize 按钮','err'); return; }
 
+  // 余额校验（wA/wB 必须在此之后定义）
   const wA=toW(amtA,aInfo.decimals);
   const wB=toW(amtB,bInfo.decimals);
+  const balChecks=[];
+  try{
+    if(aAddr!==null){ const bA=await tBal(aAddr); if(bA.lt(wA)) balChecks.push(aInfo.symbol+'（余额不足）'); }
+    else { const bA=await tBal(null); if(bA.lt(wA)) balChecks.push('tBNB（余额不足）'); }
+    if(bAddr!==null){ const bB=await tBal(bAddr); if(bB.lt(wB)) balChecks.push(bInfo.symbol+'（余额不足）'); }
+    else { const bB=await tBal(null); if(bB.lt(wB)) balChecks.push('tBNB（余额不足）'); }
+  }catch(e){}
+  if(balChecks.length){ log('liq','❌ '+balChecks.join(' 、 ')+'，请检查余额','err'); return; }
   const r=wc(ROUTER_ADDR,ROUTER_ABI);
 
   try{
@@ -1189,6 +1242,9 @@ async function scanLP(){
   if(!chkC()) return;
   const listEl=document.getElementById('lpList');
   listEl.innerHTML='<div class="lp-scanning">🔍 正在扫描流动性仓位，请稍候...</div>';
+  // 重置 LP payload 索引
+  Object.keys(_lpPayloads).forEach(k=>delete _lpPayloads[k]);
+  _lpIdx=0;
 
   try{
     const factory=rc(FACTORY_ADDR,FACTORY_ABI);
@@ -1262,9 +1318,11 @@ async function scanLP(){
           <div class="lp-stat"><div class="lp-stat-label">持有 ${symB}（税前）</div><div class="lp-stat-val">${pos.get1.toFixed(6)}</div></div>
         </div>
         <div class="lp-actions">
-          <button class="lp-act-btn add" onclick='quickAddFromLP(${JSON.stringify(addPayload)})'>➕ 追加流动性</button>
-          <button class="lp-act-btn rem" onclick='openRemForm(${JSON.stringify(addPayload)})'>➖ 移除流动性</button>
+          <button class="lp-act-btn add" onclick="quickAddFromLP_byIdx(${_lpIdx})">➕ 追加流动性</button>
+          <button class="lp-act-btn rem" onclick="openRemForm_byIdx(${_lpIdx})">➖ 移除流动性</button>
         </div>`;
+      _lpPayloads[_lpIdx] = addPayload;
+      _lpIdx++;
       listEl.appendChild(div);
     });
   }catch(e){
@@ -1278,6 +1336,9 @@ function getTokenIcon(addr){
   return `<div class="ticon-placeholder">${addr?.slice(2,4)||'?'}</div>`;
 }
 
+
+function quickAddFromLP_byIdx(idx){ quickAddFromLP(_lpPayloads[idx]); }
+function openRemForm_byIdx(idx){ openRemForm(_lpPayloads[idx]); }
 
 async function quickAddFromLP(pos){
   try{
