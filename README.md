@@ -4,8 +4,8 @@ PandaTool Open Tools 是 PandaTool 旗下的开源前端工具仓库，主要用
 
 当前仓库已包含：
 
-- TRON Nile DEX 工具
-- BSC Testnet DEX 工具
+- **TRON Nile DEX 工具**: https://pandatoolcode.github.io/OpenTools/TRON_Nile_DEX/
+- **BSC Testnet DEX 工具**:
 
 ## 🐼 项目定位
 
