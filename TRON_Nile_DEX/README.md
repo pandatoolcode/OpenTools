@@ -1,6 +1,6 @@
 # TRON Nile DEX Tool
 
-这是一个基于 **TRON Nile 测试网** 和 **SunSwap V2** 协议构建的 DEX 前端工具，用于演示 TRON 生态下的链上交互流程。
+这是一个由一键发币平台[PandaTool](https://pandatool.org)开发的，基于 **TRON Nile 测试网** 和 **SunSwap V2** 协议构建的 DEX 前端工具，用于演示 TRON 生态下的链上交互流程。
 
 ---
 
@@ -13,7 +13,7 @@ https://pandatoolcode.github.io/OpenTools/TRON_Nile_DEX/
 ## 🧰 适用网络与钱包
 
 - **网络**：TRON Nile Testnet
-- **钱包**：TronLink
+- **钱包**：TronLink波宝钱包
 - **浏览器**：https://nile.tronscan.org
 
 ---
