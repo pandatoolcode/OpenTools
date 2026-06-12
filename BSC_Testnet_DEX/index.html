@@ -1163,7 +1163,8 @@ async function calcLiqB(){
 
   // Use WBNB_ADDR for null (tBNB) when querying factory
   const tA=aAddr||WBNB_ADDR, tB=bAddr||WBNB_ADDR;
-  if(tA===tB){ document.getElementById('liqBHint').textContent='⚠️ 两边不能是同一代币'; return; }
+  if(tA.toLowerCase()===tB.toLowerCase()){ log('pool','⚠️ 请选择两种不同的代币',''); return; }
+  if(tA.toLowerCase()===tB.toLowerCase()){ document.getElementById('liqBHint').textContent='⚠️ 两边不能是同一代币'; return; }
 
   try{
     const pairAddr=await rc(FACTORY_ADDR,FACTORY_ABI).getPair(tA,tB);
@@ -1226,7 +1227,8 @@ async function doAddLiq(){
   if(!aInfo||!bInfo){ log('liq','⚠️ 请先选择代币 A 和代币 B',''); return; }
 
   const tA=aAddr||WBNB_ADDR, tB=bAddr||WBNB_ADDR;
-  if(tA===tB){ log('liq','⚠️ 两种代币不能相同，请重新选择',''); return; }
+  if(tA.toLowerCase()===tB.toLowerCase()){ log('pool','⚠️ 请选择两种不同的代币',''); return; }
+  if(tA.toLowerCase()===tB.toLowerCase()){ log('liq','⚠️ 两种代币不能相同，请重新选择',''); return; }
 
   const amtA=document.getElementById('liqAmtA').value;
   const amtB=document.getElementById('liqAmtB').value;
@@ -1322,8 +1324,8 @@ async function scanLP(){
             const [t0addr,t1addr,total,[r0,r1]] = await Promise.all([
               pair.token0(), pair.token1(), pair.totalSupply(), pair.getReserves()
             ]);
-            const info0=await tInfo(t0addr===WBNB_ADDR?null:t0addr);
-            const info1=await tInfo(t1addr===WBNB_ADDR?null:t1addr);
+            const info0=await tInfo(t0addr.toLowerCase()===WBNB_ADDR.toLowerCase()?null:t0addr);
+            const info1=await tInfo(t1addr.toLowerCase()===WBNB_ADDR.toLowerCase()?null:t1addr);
             const share = +frW(lpBal,18) / +frW(total,18);
             return {
               pairAddr, lpBal, total,
@@ -1498,22 +1500,26 @@ async function doRemove(){
     const lpBal=ethers.BigNumber.from(pos.lpBal);
     const lpAmt=lpBal.mul(Math.floor(pct*10000)).div(10000);
     const r=wc(ROUTER_ADDR,ROUTER_ABI);
-    log('rem','⏳ 移除流动性...','pend');
+    log('rem','⏳ 正在查询 Pair 信息...','pend');
+
+    // 直接从 Pair 合约读 token0/token1，不依赖上层传入值，避免 IDENTICAL_ADDRESSES
+    const pairC = rc(pos.pairAddr, ['function token0() view returns(address)','function token1() view returns(address)']);
+    const [realToken0, realToken1] = await Promise.all([pairC.token0(), pairC.token1()]);
+    const wL = WBNB_ADDR.toLowerCase();
+    const tok0IsWBNB = realToken0.toLowerCase() === wL;
+    const tok1IsWBNB = realToken1.toLowerCase() === wL;
+
+    log('rem','⏳ 正在移除流动性，请在钱包中确认...','pend');
     let tx;
-    // null 表示 tBNB（与 WBNB 等价）；用安全比较避免 null.toLowerCase() 报错
-    const _a = pos.t0addr || WBNB_ADDR;
-    const _b = pos.t1addr || WBNB_ADDR;
-    const aIsWBNB = _a.toLowerCase() === WBNB_ADDR.toLowerCase();
-    const bIsWBNB = _b.toLowerCase() === WBNB_ADDR.toLowerCase();
-    if(bIsWBNB){
-      // B 是 WBNB/BNB，调 removeLiquidityETH，传 A（非 WBNB 那个）
-      tx=await r.removeLiquidityETHSupportingFeeOnTransferTokens(_a,lpAmt,0,0,account,dl());
-    } else if(aIsWBNB){
-      // A 是 WBNB/BNB，调 removeLiquidityETH，传 B（非 WBNB 那个）
-      tx=await r.removeLiquidityETHSupportingFeeOnTransferTokens(_b,lpAmt,0,0,account,dl());
+    if(tok0IsWBNB){
+      // token0 是 WBNB，传 token1（ERC20 那个）
+      tx=await r.removeLiquidityETHSupportingFeeOnTransferTokens(realToken1,lpAmt,0,0,account,dl());
+    } else if(tok1IsWBNB){
+      // token1 是 WBNB，传 token0（ERC20 那个）
+      tx=await r.removeLiquidityETHSupportingFeeOnTransferTokens(realToken0,lpAmt,0,0,account,dl());
     } else {
-      // 两个都是 ERC20，调 removeLiquidity
-      tx=await r.removeLiquidity(_a,_b,lpAmt,0,0,account,dl());
+      // 两个都是 ERC20，按 Pair 合约实际顺序传入
+      tx=await r.removeLiquidity(realToken0,realToken1,lpAmt,0,0,account,dl());
     }
     log('rem','⏳ 交易已提交，等待链上确认... '+txLink(tx.hash),'pend');
     await tx.wait();
@@ -1538,6 +1544,7 @@ async function queryPool(){
   const _ad=document.getElementById('piActions'); if(_ad) _ad.style.display='none';
   const _dv=document.getElementById('piActDv');  if(_dv) _dv.style.display='none';
   const tA=aAddr||WBNB_ADDR, tB=bAddr||WBNB_ADDR;
+  if(tA.toLowerCase()===tB.toLowerCase()){ log('pool','⚠️ 请选择两种不同的代币',''); return; }
   try{
     const pairAddr=await rc(FACTORY_ADDR,FACTORY_ABI).getPair(tA,tB);
     if(zero(pairAddr)){ log('pool','⚠️ 该交易对尚未创建流动性池',''); return; }
@@ -1560,15 +1567,17 @@ async function queryPool(){
     document.getElementById('piShare').textContent=share.toFixed(4)+'%';
     document.getElementById('piCard').className='pcard show';
     // 存储当前池子信息，供追加/移除按钮使用
-    const _shareRatio = +frW(total,18) > 0 ? +frW(myLP,18) / +frW(total,18) : 0;
+    const _totalF = +frW(total,18);
+    const _myLPF = +frW(myLP,18);
+    const _shareRatio = _totalF > 0 ? _myLPF / _totalF : 0;
     activePoolInfo = {
       pairAddr,
       symA: aInfo.symbol, symB: bInfo.symbol,
       t0addr: aAddr,   // null = tBNB（与 scanLP addPayload 字段名统一）
       t1addr: bAddr,
       lpBal: myLP.toString(),
-      get0: ra * _shareRatio,
-      get1: rb * _shareRatio,
+      get0: isNaN(ra * _shareRatio) ? 0 : ra * _shareRatio,
+      get1: isNaN(rb * _shareRatio) ? 0 : rb * _shareRatio,
       share: _shareRatio,
     };
     // 显示操作按钮（有 LP 才显示"移除"，总是显示"追加"）
@@ -1632,8 +1641,9 @@ window.addEventListener('DOMContentLoaded',()=>{
   window['picker_liqInPicker_cb']   = (addr)=>{ calcLiqB(); refreshPickerApprove('liqInPicker'); };
   window['picker_liqOutPicker_cb']  = (addr)=>{ calcLiqB(); refreshPickerApprove('liqOutPicker'); };
 
-  window['picker_poolInPicker_cb']  = ()=>{ if(getPickerInfo('poolInPicker')&&getPickerInfo('poolOutPicker')) queryPool(); };
-  window['picker_poolOutPicker_cb'] = ()=>{ if(getPickerInfo('poolInPicker')&&getPickerInfo('poolOutPicker')) queryPool(); };
+  // 延迟触发 queryPool，等 tInfo 异步更新 resolvedInfo 完成
+  window['picker_poolInPicker_cb']  = ()=>{ if(getPickerInfo('poolInPicker')&&getPickerInfo('poolOutPicker')) setTimeout(queryPool,700); };
+  window['picker_poolOutPicker_cb'] = ()=>{ if(getPickerInfo('poolInPicker')&&getPickerInfo('poolOutPicker')) setTimeout(queryPool,700); };
 
   // 初始按钮文字
   document.getElementById('swapBtn').textContent='请输入数量';
