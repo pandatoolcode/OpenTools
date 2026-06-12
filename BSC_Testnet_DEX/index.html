@@ -413,6 +413,11 @@ hr.dv{border:none;border-top:1px solid var(--b1);margin:10px 0;}
     <div class="irow"><span>LP 总量</span><span class="iv" id="piTotal">—</span></div>
     <div class="irow"><span>我的 LP</span><span class="iv g" id="piMine">—</span></div>
     <div class="irow"><span>我的份额</span><span class="iv" id="piShare">—</span></div>
+    <hr class="dv" id="piActDv" style="display:none">
+    <div id="piActions" style="display:none;gap:8px;margin-top:4px" class="lp-actions">
+      <button class="lp-act-btn add" onclick="piQuickAdd()">➕ 追加流动性</button>
+      <button class="lp-act-btn rem" onclick="piQuickRemove()">➖ 移除流动性</button>
+    </div>
   </div>
   <div class="logbox" id="poolLog"></div>
 </div>
@@ -489,6 +494,7 @@ const cache = {}; // token info cache
 const pickers = {};
 // Current LP being removed
 let activeRemLP = null;
+let activePoolInfo = null; // 当前池子信息查询结果，供操作按钮使用
 const _lpPayloads = {}; // 存储 LP 卡片数据，避免 onclick 中 JSON 引号冲突
 let _lpIdx = 0;
 
@@ -599,11 +605,15 @@ function isBnbWbnbPair(inAddr, outAddr){
 
 // Build swap path: null = tBNB (use WBNB_ADDR in path)
 function mkPath(inAddr, outAddr){
+  // 统一用 WBNB_ADDR 标准格式代表 tBNB，toLowerCase 比较避免 checksum 大小写问题
   const a = inAddr  || WBNB_ADDR;
   const b = outAddr || WBNB_ADDR;
-  if(a===b) return [a]; // same token
-  if(a===WBNB_ADDR || b===WBNB_ADDR) return [a,b];
-  return [a,WBNB_ADDR,b];
+  const aL = a.toLowerCase();
+  const bL = b.toLowerCase();
+  const wL = WBNB_ADDR.toLowerCase();
+  if(aL === bL) return [a]; // same token (不应走到这里，但保险)
+  if(aL === wL || bL === wL) return [a, b]; // 其中一方是 WBNB/BNB，直接两跳
+  return [a, WBNB_ADDR, b]; // Token→WBNB→Token，三跳
 }
 
 // PandaTool: activity log helper
@@ -868,7 +878,8 @@ function setSl(btn,val){
 // SWAP
 // ═══════════════════════════════════════════════
 let calcTimer=null, lastOut=null;
-function schedCalc(){ clearTimeout(calcTimer); calcTimer=setTimeout(doCalc,400); }
+// 延迟 600ms，给 selectPreset 里的异步 tInfo 留足时间更新 decimals（避免用旧精度计算）
+function schedCalc(){ clearTimeout(calcTimer); calcTimer=setTimeout(doCalc,600); }
 
 // PandaTool: quote engine
 async function doCalc(){
@@ -1067,6 +1078,7 @@ async function doSwap(){
   const amtIn=toW(amtRaw,inInfo.decimals);
   const minOut=toW((+outRaw*(1-slip/100)).toFixed(outInfo.decimals),outInfo.decimals);
   const p=mkPath(inAddr,outAddr);
+  if(!p || p.length < 2){ log('swap','❌ 无效的交易路径，请检查代币选择','err'); return; }
   const r=wc(ROUTER_ADDR,ROUTER_ABI);
   try{
     log('swap',`⏳ 正在执行兑换（${fee?'FeeOnTransfer 模式':'标准模式'}，滑点 ${slip}%），请在钱包确认...`,'pend');
@@ -1340,6 +1352,47 @@ function getTokenIcon(addr){
 function quickAddFromLP_byIdx(idx){ quickAddFromLP(_lpPayloads[idx]); }
 function openRemForm_byIdx(idx){ openRemForm(_lpPayloads[idx]); }
 
+// 池子查询面板的操作按钮处理
+async function piQuickAdd(){
+  if(!activePoolInfo){ log('pool','⚠️ 请先查询池子信息',''); return; }
+  const pos = activePoolInfo;
+  try{
+    await setPickerAddress('liqInPicker',  pos.tAaddr);
+    await setPickerAddress('liqOutPicker', pos.tBaddr);
+    goTab('create');
+    setTimeout(()=>{ calcLiqB(); }, 150);
+    log('pool','✅ 已切换到追加流动性，请填写数量','ok');
+  }catch(e){
+    log('pool','❌ 跳转失败：'+(e.message||e),'err');
+  }
+}
+
+function piQuickRemove(){
+  if(!activePoolInfo){ log('pool','⚠️ 请先查询池子信息',''); return; }
+  const pos = activePoolInfo;
+  if(!account){ log('pool','⚠️ 请先连接钱包',''); return; }
+  const lpBalBig = ethers.BigNumber.from(pos.lpBal);
+  if(lpBalBig.lte(0)){
+    log('pool','⚠️ 您在该池子没有流动性，无法移除','');
+    return;
+  }
+  // 复用 openRemForm，把数据格式对齐
+  openRemForm({
+    pairAddr: pos.pairAddr,
+    symA:     pos.symA,
+    symB:     pos.symB,
+    lpBal:    pos.lpBal,
+    get0:     pos.get0,
+    get1:     pos.get1,
+    share:    pos.share,
+  });
+  // remForm 在同一 panel-manage 里，直接滚动显示即可（不需要 goTab）
+  setTimeout(()=>{
+    const el = document.getElementById('remForm');
+    if(el) el.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }, 80);
+}
+
 async function quickAddFromLP(pos){
   try{
     await setPickerAddress('liqInPicker', pos.t0addr);
@@ -1431,6 +1484,10 @@ async function queryPool(){
   const aInfo=getPickerInfo('poolInPicker');
   const bInfo=getPickerInfo('poolOutPicker');
   if(!aInfo||!bInfo){ log('pool','⚠️ 请先选择要查询的两个代币',''); return; }
+  // 重置操作按钮和缓存状态
+  activePoolInfo=null;
+  const _ad=document.getElementById('piActions'); if(_ad) _ad.style.display='none';
+  const _dv=document.getElementById('piActDv');  if(_dv) _dv.style.display='none';
   const tA=aAddr||WBNB_ADDR, tB=bAddr||WBNB_ADDR;
   try{
     const pairAddr=await rc(FACTORY_ADDR,FACTORY_ABI).getPair(tA,tB);
@@ -1453,6 +1510,24 @@ async function queryPool(){
     document.getElementById('piMine').textContent=(+frW(myLP,18)).toFixed(10)+' LP';
     document.getElementById('piShare').textContent=share.toFixed(4)+'%';
     document.getElementById('piCard').className='pcard show';
+    // 存储当前池子信息，供追加/移除按钮使用
+    activePoolInfo = {
+      pairAddr,
+      symA: aInfo.symbol, symB: bInfo.symbol,
+      tAaddr: aAddr || null,   // null 表示 tBNB
+      tBaddr: bAddr || null,
+      lpBal: myLP.toString(),
+      get0: ra * (+frW(myLP,18) / +frW(total,18)),
+      get1: rb * (+frW(myLP,18) / +frW(total,18)),
+      share: +frW(total,18)>0 ? +frW(myLP,18) / +frW(total,18) : 0,
+    };
+    // 显示操作按钮（有 LP 才显示"移除"，总是显示"追加"）
+    const actDiv = document.getElementById('piActions');
+    const actDv  = document.getElementById('piActDv');
+    if(actDiv){
+      actDiv.style.display = 'flex';
+      actDv.style.display  = 'block';
+    }
     log('pool','✅ 池子信息查询成功','ok');
   }catch(e){ log('pool','❌ '+(e.reason||e.message),'err'); }
 }
@@ -1483,8 +1558,8 @@ window.addEventListener('DOMContentLoaded',()=>{
   // Register picker callbacks
   window['picker_swapInPicker_cb']  = (addr)=>{
     const outAddr=getPickerAddr('swapOutPicker');
-    if(addr!==null && outAddr!==null && addr===outAddr){
-      // 和 out 相同代币，自动清掉 out 选择
+    // 用 toLowerCase 比较，避免 checksum 格式不同导致误判
+    if(addr!==null && outAddr!==null && addr.toLowerCase()===outAddr.toLowerCase()){
       const p=pickers['swapOutPicker'];
       p.selectedPreset=-1; p.resolvedAddr=null; p.resolvedInfo=null;
       PRESET_TOKENS.forEach((_,i)=>{ const b=document.getElementById(`swapOutPicker_p${i}`); if(b) b.className='tbtn'; });
@@ -1495,7 +1570,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   };
   window['picker_swapOutPicker_cb'] = (addr)=>{
     const inAddr=getPickerAddr('swapInPicker');
-    if(addr!==null && inAddr!==null && addr===inAddr){
+    if(addr!==null && inAddr!==null && addr.toLowerCase()===inAddr.toLowerCase()){
       const p=pickers['swapInPicker'];
       p.selectedPreset=-1; p.resolvedAddr=null; p.resolvedInfo=null;
       PRESET_TOKENS.forEach((_,i)=>{ const b=document.getElementById(`swapInPicker_p${i}`); if(b) b.className='tbtn'; });
