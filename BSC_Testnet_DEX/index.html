@@ -447,7 +447,15 @@ const ROUTER_ADDR  = '0xD99D1c33F9fC3444f8101754aBC46c52416550D1';
 const FACTORY_ADDR = '0x6725F303b657a9451d8BA641348b6761A6CC7a17';
 const WBNB_ADDR    = '0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd';
 const USDT_ADDR    = '0x66E972502A34A625828C544a1914E8D8cc2A9dE5';
-const RPC_URL      = 'https://data-seed-prebsc-1-s1.binance.org:8545';
+const RPC_URLS = [
+  'https://data-seed-prebsc-1-s1.binance.org:8545',
+  'https://data-seed-prebsc-2-s1.binance.org:8545',
+  'https://data-seed-prebsc-1-s2.binance.org:8545',
+  'https://data-seed-prebsc-2-s2.binance.org:8545',
+  'https://bsc-testnet-rpc.publicnode.com',
+];
+const RPC_URL = RPC_URLS[0]; // 保持兼容（connectWallet 用）
+let _rpcIdx = 0; // 轮询游标
 const EXPLORER     = 'https://testnet.bscscan.com/tx/';
 const CHAIN_ID     = 97;
 
@@ -500,7 +508,30 @@ let _lpIdx = 0;
 
 const MAX = ethers.constants.MaxUint256;
 
-function rpc(){ return new ethers.providers.JsonRpcProvider(RPC_URL, {name:'bnbt',chainId:CHAIN_ID}); }
+// 轮询 RPC 节点，避免单节点限速
+function rpc(idx){
+  const url = RPC_URLS[(idx !== undefined ? idx : _rpcIdx) % RPC_URLS.length];
+  return new ethers.providers.JsonRpcProvider(url, {name:'bnbt',chainId:CHAIN_ID});
+}
+// 带自动重试的合约调用：遇到限速错误换节点重试
+async function callWithRetry(addr, abi, method, args=[], retries=RPC_URLS.length){
+  for(let i=0;i<retries;i++){
+    try{
+      const nodeIdx = (_rpcIdx + i) % RPC_URLS.length;
+      const c = new ethers.Contract(addr, abi, rpc(nodeIdx));
+      const result = await c[method](...args);
+      _rpcIdx = nodeIdx; // 成功的节点下次优先
+      return result;
+    }catch(e){
+      const isRateLimit = (e?.error?.code===-32005) ||
+                          (e?.message?.includes('limit exceeded')) ||
+                          (e?.message?.includes('SERVER_ERROR')) ||
+                          (e?.code==='SERVER_ERROR');
+      if(!isRateLimit || i===retries-1) throw e;
+      await new Promise(r=>setTimeout(r, 200 * (i+1))); // 指数退避
+    }
+  }
+}
 function rc(addr,abi){ return new ethers.Contract(addr,abi,rpc()); }
 function wc(addr,abi){ if(!signer) throw new Error('未连接'); return new ethers.Contract(addr,abi,signer); }
 
@@ -1300,51 +1331,94 @@ async function scanLP(){
   if(!chkC()) return;
   const listEl=document.getElementById('lpList');
   listEl.innerHTML='<div class="lp-scanning">🔍 正在扫描流动性仓位，请稍候...</div>';
-  // 重置 LP payload 索引
   Object.keys(_lpPayloads).forEach(k=>delete _lpPayloads[k]);
   _lpIdx=0;
 
+  // 辅助：判断是否是限速/网络错误
+  function isRateLimitErr(e){
+    return (e?.error?.code===-32005)||
+           String(e?.message).includes('limit exceeded')||
+           String(e?.message).includes('SERVER_ERROR')||
+           String(e?.body||'').includes('limit exceeded')||
+           e?.code==='SERVER_ERROR';
+  }
+
   try{
-    const factory=rc(FACTORY_ADDR,FACTORY_ABI);
-    const totalPairs=Number((await factory.allPairsLength()).toString());
+    // 轮流用不同节点拿 allPairsLength
+    let totalPairs=0;
+    for(let ni=0;ni<RPC_URLS.length;ni++){
+      try{
+        const f=new ethers.Contract(FACTORY_ADDR,FACTORY_ABI,rpc(ni));
+        totalPairs=Number((await f.allPairsLength()).toString());
+        _rpcIdx=ni; break;
+      }catch(e){
+        if(ni===RPC_URLS.length-1){
+          if(isRateLimitErr(e))
+            listEl.innerHTML='<div class="lp-empty" style="color:var(--acc)">⚠️ RPC 节点限速，请稍等片刻后重新扫描</div>';
+          else
+            listEl.innerHTML='<div class="lp-empty" style="color:var(--red)">❌ 网络错误，请检查网络后重试</div>';
+          return;
+        }
+      }
+    }
+
+    const SCAN_LIMIT = Math.min(totalPairs, 300); // 最多扫 300 个池
+    const BATCH = 5;  // 每批 5 个并发，避免限速
+    const BATCH_DELAY = 150; // 批次间休息 150ms
+
+    listEl.innerHTML=`<div class="lp-scanning">🔍 扫描中（共 ${SCAN_LIMIT} 个池子）...</div>`;
+
     const myPositions=[];
 
-    const limit=totalPairs;
-    const batchSize=15;
+    for(let i=0;i<SCAN_LIMIT;i+=BATCH){
+      const batchNums=[];
+      for(let j=i;j<Math.min(i+BATCH,SCAN_LIMIT);j++) batchNums.push(j);
 
-    for(let i=0;i<limit;i+=batchSize){
-      const batch=[];
-      for(let j=i;j<Math.min(i+batchSize,limit);j++) batch.push(j);
-      const settled = await Promise.all(batch.map(async(idx)=>{
-        try{
-          const pairAddr=await factory.allPairs(idx);
-          const pair=rc(pairAddr,PAIR_ABI);
-          const lpBal=await pair.balanceOf(account);
-          if(lpBal.gt(0)){
-            const [t0addr,t1addr,total,[r0,r1]] = await Promise.all([
-              pair.token0(), pair.token1(), pair.totalSupply(), pair.getReserves()
+      const settled = await Promise.allSettled(batchNums.map(async(idx)=>{
+        // 每个请求轮询节点重试
+        for(let ni=0;ni<RPC_URLS.length;ni++){
+          try{
+            const nodeIdx=(_rpcIdx+ni)%RPC_URLS.length;
+            const fNode=new ethers.Contract(FACTORY_ADDR,FACTORY_ABI,rpc(nodeIdx));
+            const pairAddr=await fNode.allPairs(idx);
+            const pair=new ethers.Contract(pairAddr,PAIR_ABI,rpc(nodeIdx));
+            const lpBal=await pair.balanceOf(account);
+            if(!lpBal.gt(0)) return null;
+            const [t0addr,t1addr,total,[r0,r1]]=await Promise.all([
+              pair.token0(),pair.token1(),pair.totalSupply(),pair.getReserves()
             ]);
             const info0=await tInfo(t0addr.toLowerCase()===WBNB_ADDR.toLowerCase()?null:t0addr);
             const info1=await tInfo(t1addr.toLowerCase()===WBNB_ADDR.toLowerCase()?null:t1addr);
-            const share = +frW(lpBal,18) / +frW(total,18);
-            return {
-              pairAddr, lpBal, total,
-              t0addr, t1addr, info0, info1,
-              r0, r1, share,
+            const share=+frW(lpBal,18)/+frW(total,18);
+            return{pairAddr,lpBal,total,t0addr,t1addr,info0,info1,r0,r1,share,
               get0:(+frW(r0,info0.decimals)*share),
-              get1:(+frW(r1,info1.decimals)*share),
-            };
+              get1:(+frW(r1,info1.decimals)*share)};
+          }catch(e){
+            if(!isRateLimitErr(e)||ni===RPC_URLS.length-1) return null;
+            await new Promise(r=>setTimeout(r,200*(ni+1)));
           }
-        }catch{}
+        }
         return null;
       }));
-      settled.forEach(pos=>{ if(pos) myPositions.push(pos); });
+
+      settled.forEach(r=>{ if(r.status==='fulfilled'&&r.value) myPositions.push(r.value); });
+
+      // 进度更新
+      const scanned=Math.min(i+BATCH,SCAN_LIMIT);
+      if(myPositions.length>0)
+        listEl.querySelector('.lp-scanning')&&(listEl.querySelector('.lp-scanning').textContent=
+          `🔍 扫描中（${scanned}/${SCAN_LIMIT}）已找到 ${myPositions.length} 个仓位...`);
+      else
+        listEl.querySelector('.lp-scanning')&&(listEl.querySelector('.lp-scanning').textContent=
+          `🔍 扫描中（${scanned}/${SCAN_LIMIT}）...`);
+
+      if(i+BATCH<SCAN_LIMIT) await new Promise(r=>setTimeout(r,BATCH_DELAY));
     }
 
     myPositions.sort((a,b)=>a.lpBal.eq(b.lpBal)?0:(a.lpBal.gt(b.lpBal)?-1:1));
 
     if(myPositions.length===0){
-      listEl.innerHTML='<div class="lp-empty">未找到流动性仓位（已扫描 '+limit+' 个池子）<br><span style="font-size:10px;color:var(--tx3)">添加流动性后点击重新扫描</span></div>';
+      listEl.innerHTML=`<div class="lp-empty">未找到流动性仓位（已扫描 ${SCAN_LIMIT} 个池子）<br><span style="font-size:10px;color:var(--tx3)">添加流动性后点击重新扫描，或在下方手动查询</span></div>`;
       return;
     }
 
@@ -1384,7 +1458,11 @@ async function scanLP(){
       listEl.appendChild(div);
     });
   }catch(e){
-    listEl.innerHTML='<div class="lp-empty" style="color:var(--red)">扫描失败，请检查网络连接：'+e.message+'</div>';
+    const isRate=(e?.error?.code===-32005)||String(e?.message).includes('limit exceeded')||e?.code==='SERVER_ERROR';
+    if(isRate)
+      listEl.innerHTML='<div class="lp-empty" style="color:var(--acc)">⚠️ RPC 节点限速，请稍等片刻后重新扫描<br><span style="font-size:10px;color:var(--tx3)">也可在下方手动输入合约地址查询</span></div>';
+    else
+      listEl.innerHTML='<div class="lp-empty" style="color:var(--red)">❌ 扫描出错，请检查网络后重试</div>';
   }
 }
 
@@ -1539,56 +1617,82 @@ async function queryPool(){
   const aInfo=getPickerInfo('poolInPicker');
   const bInfo=getPickerInfo('poolOutPicker');
   if(!aInfo||!bInfo){ log('pool','⚠️ 请先选择要查询的两个代币',''); return; }
-  // 重置操作按钮和缓存状态
   activePoolInfo=null;
   const _ad=document.getElementById('piActions'); if(_ad) _ad.style.display='none';
   const _dv=document.getElementById('piActDv');  if(_dv) _dv.style.display='none';
   const tA=aAddr||WBNB_ADDR, tB=bAddr||WBNB_ADDR;
   if(tA.toLowerCase()===tB.toLowerCase()){ log('pool','⚠️ 请选择两种不同的代币',''); return; }
-  try{
-    const pairAddr=await rc(FACTORY_ADDR,FACTORY_ABI).getPair(tA,tB);
-    if(zero(pairAddr)){ log('pool','⚠️ 该交易对尚未创建流动性池',''); return; }
-    const pair=rc(pairAddr,PAIR_ABI);
-    const[r0,r1]=await pair.getReserves();
-    const t0=await rc(pairAddr,['function token0() view returns(address)']).token0();
-    const[rA,rB]=t0.toLowerCase()===tA.toLowerCase()?[r0,r1]:[r1,r0];
-    const ra=+frW(rA,aInfo.decimals),rb=+frW(rB,bInfo.decimals);
-    const total=await pair.totalSupply();
-    const myLP=account?await pair.balanceOf(account):ethers.BigNumber.from(0);
-    const share=+frW(total,18)>0?+frW(myLP,18)/+frW(total,18)*100:0;
-    document.getElementById('piName').textContent=aInfo.symbol+' / '+bInfo.symbol;
-    document.getElementById('piAddr').textContent=pairAddr;
-    document.getElementById('piResA').textContent=ra.toFixed(6)+' '+aInfo.symbol;
-    document.getElementById('piResB').textContent=rb.toFixed(6)+' '+bInfo.symbol;
-    document.getElementById('piPrAB').textContent=(rb/ra).toFixed(8)+' '+bInfo.symbol;
-    document.getElementById('piPrBA').textContent=(ra/rb).toFixed(8)+' '+aInfo.symbol;
-    document.getElementById('piTotal').textContent=(+frW(total,18)).toFixed(6)+' LP';
-    document.getElementById('piMine').textContent=(+frW(myLP,18)).toFixed(10)+' LP';
-    document.getElementById('piShare').textContent=share.toFixed(4)+'%';
-    document.getElementById('piCard').className='pcard show';
-    // 存储当前池子信息，供追加/移除按钮使用
-    const _totalF = +frW(total,18);
-    const _myLPF = +frW(myLP,18);
-    const _shareRatio = _totalF > 0 ? _myLPF / _totalF : 0;
-    activePoolInfo = {
-      pairAddr,
-      symA: aInfo.symbol, symB: bInfo.symbol,
-      t0addr: aAddr,   // null = tBNB（与 scanLP addPayload 字段名统一）
-      t1addr: bAddr,
-      lpBal: myLP.toString(),
-      get0: isNaN(ra * _shareRatio) ? 0 : ra * _shareRatio,
-      get1: isNaN(rb * _shareRatio) ? 0 : rb * _shareRatio,
-      share: _shareRatio,
-    };
-    // 显示操作按钮（有 LP 才显示"移除"，总是显示"追加"）
-    const actDiv = document.getElementById('piActions');
-    const actDv  = document.getElementById('piActDv');
-    if(actDiv){
-      actDiv.style.display = 'flex';
-      actDv.style.display  = 'block';
+
+  document.getElementById('piCard').className='pcard'; // 隐藏旧结果
+  log('pool','⏳ 正在查询池子信息...','pend');
+
+  // 带节点轮询的查询，遇到限速自动换节点
+  async function tryQuery(nodeIdx){
+    const p = rpc(nodeIdx % RPC_URLS.length);
+    const factoryC = new ethers.Contract(FACTORY_ADDR, FACTORY_ABI, p);
+    const pairAddr = await factoryC.getPair(tA, tB);
+    if(zero(pairAddr)) return {empty:true};
+    const pairC = new ethers.Contract(pairAddr, PAIR_ABI, p);
+    // 并行拿所有数据，减少 RTT
+    const [reserves, t0, total, myLP] = await Promise.all([
+      pairC.getReserves(),
+      pairC.token0(),
+      pairC.totalSupply(),
+      account ? pairC.balanceOf(account) : Promise.resolve(ethers.BigNumber.from(0)),
+    ]);
+    return {pairAddr, reserves, t0, total, myLP};
+  }
+
+  let result=null;
+  for(let ni=0;ni<RPC_URLS.length;ni++){
+    try{
+      result = await tryQuery((_rpcIdx+ni)%RPC_URLS.length);
+      _rpcIdx = (_rpcIdx+ni)%RPC_URLS.length;
+      break;
+    }catch(e){
+      const isRate=(e?.error?.code===-32005)||String(e?.message).includes('limit exceeded')||e?.code==='SERVER_ERROR';
+      if(!isRate||ni===RPC_URLS.length-1){
+        if(isRate) log('pool','⚠️ RPC 节点繁忙，请稍后重试','');
+        else log('pool','❌ 查询失败：'+(e.reason||e.message),'err');
+        return;
+      }
+      await new Promise(r=>setTimeout(r,300*(ni+1)));
     }
-    log('pool','✅ 池子信息查询成功','ok');
-  }catch(e){ log('pool','❌ '+(e.reason||e.message),'err'); }
+  }
+
+  if(!result) return;
+  if(result.empty){ log('pool','⚠️ 该交易对尚未创建流动性池',''); return; }
+
+  const {pairAddr, reserves:[r0,r1], t0, total, myLP} = result;
+  const [rA,rB] = t0.toLowerCase()===tA.toLowerCase() ? [r0,r1] : [r1,r0];
+  const ra=+frW(rA,aInfo.decimals), rb=+frW(rB,bInfo.decimals);
+  const _totalF=+frW(total,18), _myLPF=+frW(myLP,18);
+  const share = _totalF>0 ? _myLPF/_totalF*100 : 0;
+  const _shareRatio = _totalF>0 ? _myLPF/_totalF : 0;
+
+  document.getElementById('piName').textContent=aInfo.symbol+' / '+bInfo.symbol;
+  document.getElementById('piAddr').textContent=pairAddr;
+  document.getElementById('piResA').textContent=ra.toFixed(6)+' '+aInfo.symbol;
+  document.getElementById('piResB').textContent=rb.toFixed(6)+' '+bInfo.symbol;
+  document.getElementById('piPrAB').textContent=(ra>0?(rb/ra).toFixed(8):'-')+' '+bInfo.symbol;
+  document.getElementById('piPrBA').textContent=(rb>0?(ra/rb).toFixed(8):'-')+' '+aInfo.symbol;
+  document.getElementById('piTotal').textContent=_totalF.toFixed(6)+' LP';
+  document.getElementById('piMine').textContent=_myLPF.toFixed(10)+' LP';
+  document.getElementById('piShare').textContent=share.toFixed(4)+'%';
+  document.getElementById('piCard').className='pcard show';
+
+  activePoolInfo={
+    pairAddr, symA:aInfo.symbol, symB:bInfo.symbol,
+    t0addr:aAddr, t1addr:bAddr,
+    lpBal:myLP.toString(),
+    get0:isNaN(ra*_shareRatio)?0:ra*_shareRatio,
+    get1:isNaN(rb*_shareRatio)?0:rb*_shareRatio,
+    share:_shareRatio,
+  };
+  const actDiv=document.getElementById('piActions');
+  const actDv=document.getElementById('piActDv');
+  if(actDiv){ actDiv.style.display='flex'; actDv.style.display='block'; }
+  log('pool','✅ 池子信息查询成功','ok');
 }
 
 // ═══════════════════════════════════════════════
@@ -1642,8 +1746,14 @@ window.addEventListener('DOMContentLoaded',()=>{
   window['picker_liqOutPicker_cb']  = (addr)=>{ calcLiqB(); refreshPickerApprove('liqOutPicker'); };
 
   // 延迟触发 queryPool，等 tInfo 异步更新 resolvedInfo 完成
-  window['picker_poolInPicker_cb']  = ()=>{ if(getPickerInfo('poolInPicker')&&getPickerInfo('poolOutPicker')) setTimeout(queryPool,700); };
-  window['picker_poolOutPicker_cb'] = ()=>{ if(getPickerInfo('poolInPicker')&&getPickerInfo('poolOutPicker')) setTimeout(queryPool,700); };
+  // 用 _poolQueryTimer 防抖，避免快速切换时多次触发
+  let _poolQueryTimer=null;
+  function schedPoolQuery(){
+    clearTimeout(_poolQueryTimer);
+    _poolQueryTimer=setTimeout(queryPool,800);
+  }
+  window['picker_poolInPicker_cb']  = ()=>{ if(getPickerInfo('poolInPicker')&&getPickerInfo('poolOutPicker')) schedPoolQuery(); };
+  window['picker_poolOutPicker_cb'] = ()=>{ if(getPickerInfo('poolInPicker')&&getPickerInfo('poolOutPicker')) schedPoolQuery(); };
 
   // 初始按钮文字
   document.getElementById('swapBtn').textContent='请输入数量';
@@ -1654,8 +1764,19 @@ window.addEventListener('DOMContentLoaded',()=>{
   selectPreset('swapOutPicker', 2);  // USDT
   selectPreset('liqInPicker', 0);    // tBNB
   selectPreset('liqOutPicker', 2);   // USDT
+  // 初始化选默认代币时，先暂时禁用 pool picker 的自动查询，避免触发默认查询
+  const _origPoolInCb  = window['picker_poolInPicker_cb'];
+  const _origPoolOutCb = window['picker_poolOutPicker_cb'];
+  window['picker_poolInPicker_cb']  = ()=>{};
+  window['picker_poolOutPicker_cb'] = ()=>{};
   selectPreset('poolInPicker', 0);
   selectPreset('poolOutPicker', 2);
+  // 恢复 cb（用 setTimeout 确保在 selectPreset 的所有同步/微任务执行完后才恢复）
+  setTimeout(()=>{
+    // 恢复为带防抖的版本（而非原始版本）
+    window['picker_poolInPicker_cb']  = ()=>{ if(getPickerInfo('poolInPicker')&&getPickerInfo('poolOutPicker')) schedPoolQuery(); };
+    window['picker_poolOutPicker_cb'] = ()=>{ if(getPickerInfo('poolInPicker')&&getPickerInfo('poolOutPicker')) schedPoolQuery(); };
+  }, 1200);
 
   if(document.getElementById('panel-manage').classList.contains('on')) scanLP();
 });
