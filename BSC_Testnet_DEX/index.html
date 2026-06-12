@@ -616,6 +616,22 @@ function mkPath(inAddr, outAddr){
   return [a, WBNB_ADDR, b]; // Token→WBNB→Token，三跳
 }
 
+// buildPathCandidates: 返回所有可能的 swap 路径，按优先级排列
+// 让 doCalc 依次尝试每条路径，找到第一条有流动性的
+function buildPathCandidates(inAddr, outAddr){
+  const a  = inAddr  || WBNB_ADDR; // null(tBNB) → WBNB_ADDR
+  const b  = outAddr || WBNB_ADDR;
+  const aL = a.toLowerCase();
+  const bL = b.toLowerCase();
+  const wL = WBNB_ADDR.toLowerCase();
+  const paths = [];
+  // 路径1：直接两跳（如 USDT→TestToken 直接对，没有经过 WBNB）
+  if(aL !== bL) paths.push([a, b]);
+  // 路径2：经过 WBNB 中转的三跳（只有 a 和 b 都不是 WBNB 才有意义）
+  if(aL !== wL && bL !== wL) paths.push([a, WBNB_ADDR, b]);
+  return paths;
+}
+
 // PandaTool: activity log helper
 function log(panel,msg,type=''){
   const box=document.getElementById(panel+'Log');
@@ -936,22 +952,39 @@ async function doCalc(){
     return;
   }
   try{
-    const p=mkPath(inAddr,outAddr);
-    if(p.length<2){ lastOut=null; return; }
-    const amts=await rc(ROUTER_ADDR,ROUTER_ABI).getAmountsOut(toW(amtRaw,inInfo.decimals),p);
-    const out=+frW(amts[amts.length-1],outInfo.decimals);
-    lastOut={out,inAddr,outAddr,inInfo,outInfo,isWrap:false};
-    document.getElementById('swapOutAmt').value=out.toFixed(8);
+    const routerC = rc(ROUTER_ADDR, ROUTER_ABI);
+    const amtInWei = toW(amtRaw, inInfo.decimals);
+    let bestOut = null, bestPath = null;
+
+    // 依次尝试：直接两跳 → WBNB三跳，取第一条能成功报价的路径
+    const pathCandidates = buildPathCandidates(inAddr, outAddr);
+    for(const p of pathCandidates){
+      try{
+        const amts = await routerC.getAmountsOut(amtInWei, p);
+        const out = +frW(amts[amts.length-1], outInfo.decimals);
+        if(out > 0){ bestOut = out; bestPath = p; break; }
+      }catch(_){}
+    }
+
+    if(!bestOut || bestOut <= 0){
+      document.getElementById('swapOutAmt').value='';
+      document.getElementById('swapBox').className='ibox';
+      lastOut=null;
+      log('swap','⚠️ 未找到可用路径，请确认该交易对存在流动性','');
+      return;
+    }
+
+    lastOut={out:bestOut,inAddr,outAddr,inInfo,outInfo,isWrap:false,path:bestPath};
+    document.getElementById('swapOutAmt').value=bestOut.toFixed(8);
     updateSwapBox();
     document.getElementById('swapBox').className='ibox show';
     document.getElementById('swapBtn').textContent='执行兑换';
-    // 余额由 refreshPickerBal 自动同步到 swapOutBalLbl
     refreshPickerBal('swapOutPicker');
   }catch(e){
     document.getElementById('swapOutAmt').value='';
     document.getElementById('swapBox').className='ibox';
     lastOut=null;
-    log('swap','⚠️ 报价获取失败，该交易对可能暂无流动性：'+e.message,'');
+    log('swap','⚠️ 报价获取失败：'+e.message,'');
   }
 }
 
@@ -1077,8 +1110,19 @@ async function doSwap(){
   const fee=document.getElementById('feeOn').checked;
   const amtIn=toW(amtRaw,inInfo.decimals);
   const minOut=toW((+outRaw*(1-slip/100)).toFixed(outInfo.decimals),outInfo.decimals);
-  const p=mkPath(inAddr,outAddr);
-  if(!p || p.length < 2){ log('swap','❌ 无效的交易路径，请检查代币选择','err'); return; }
+  // 优先用 doCalc 已探出的最优路径；若无则重新探路
+  let p = (lastOut && lastOut.path) ? lastOut.path : null;
+  if(!p){
+    const cands = buildPathCandidates(inAddr, outAddr);
+    const routerC2 = rc(ROUTER_ADDR, ROUTER_ABI);
+    for(const cp of cands){
+      try{
+        await routerC2.getAmountsOut(toW('1', inInfo.decimals), cp);
+        p = cp; break;
+      }catch(_){}
+    }
+  }
+  if(!p || p.length < 2){ log('swap','❌ 无法找到可用路径，请确认交易对有流动性','err'); return; }
   const r=wc(ROUTER_ADDR,ROUTER_ABI);
   try{
     log('swap',`⏳ 正在执行兑换（${fee?'FeeOnTransfer 模式':'标准模式'}，滑点 ${slip}%），请在钱包确认...`,'pend');
@@ -1357,8 +1401,8 @@ async function piQuickAdd(){
   if(!activePoolInfo){ log('pool','⚠️ 请先查询池子信息',''); return; }
   const pos = activePoolInfo;
   try{
-    await setPickerAddress('liqInPicker',  pos.tAaddr);
-    await setPickerAddress('liqOutPicker', pos.tBaddr);
+    await setPickerAddress('liqInPicker',  pos.t0addr);
+    await setPickerAddress('liqOutPicker', pos.t1addr);
     goTab('create');
     setTimeout(()=>{ calcLiqB(); }, 150);
     log('pool','✅ 已切换到追加流动性，请填写数量','ok');
@@ -1456,15 +1500,20 @@ async function doRemove(){
     const r=wc(ROUTER_ADDR,ROUTER_ABI);
     log('rem','⏳ 移除流动性...','pend');
     let tx;
-    const aIsWBNB=pos.t0addr.toLowerCase()===WBNB_ADDR.toLowerCase();
-    const bIsWBNB=pos.t1addr.toLowerCase()===WBNB_ADDR.toLowerCase();
-    // Use removeLiquidityETHSupportingFeeOnTransferTokens when one side is WBNB
+    // null 表示 tBNB（与 WBNB 等价）；用安全比较避免 null.toLowerCase() 报错
+    const _a = pos.t0addr || WBNB_ADDR;
+    const _b = pos.t1addr || WBNB_ADDR;
+    const aIsWBNB = _a.toLowerCase() === WBNB_ADDR.toLowerCase();
+    const bIsWBNB = _b.toLowerCase() === WBNB_ADDR.toLowerCase();
     if(bIsWBNB){
-      tx=await r.removeLiquidityETHSupportingFeeOnTransferTokens(pos.t0addr,lpAmt,0,0,account,dl());
+      // B 是 WBNB/BNB，调 removeLiquidityETH，传 A（非 WBNB 那个）
+      tx=await r.removeLiquidityETHSupportingFeeOnTransferTokens(_a,lpAmt,0,0,account,dl());
     } else if(aIsWBNB){
-      tx=await r.removeLiquidityETHSupportingFeeOnTransferTokens(pos.t1addr,lpAmt,0,0,account,dl());
+      // A 是 WBNB/BNB，调 removeLiquidityETH，传 B（非 WBNB 那个）
+      tx=await r.removeLiquidityETHSupportingFeeOnTransferTokens(_b,lpAmt,0,0,account,dl());
     } else {
-      tx=await r.removeLiquidity(pos.t0addr,pos.t1addr,lpAmt,0,0,account,dl());
+      // 两个都是 ERC20，调 removeLiquidity
+      tx=await r.removeLiquidity(_a,_b,lpAmt,0,0,account,dl());
     }
     log('rem','⏳ 交易已提交，等待链上确认... '+txLink(tx.hash),'pend');
     await tx.wait();
@@ -1511,15 +1560,16 @@ async function queryPool(){
     document.getElementById('piShare').textContent=share.toFixed(4)+'%';
     document.getElementById('piCard').className='pcard show';
     // 存储当前池子信息，供追加/移除按钮使用
+    const _shareRatio = +frW(total,18) > 0 ? +frW(myLP,18) / +frW(total,18) : 0;
     activePoolInfo = {
       pairAddr,
       symA: aInfo.symbol, symB: bInfo.symbol,
-      tAaddr: aAddr || null,   // null 表示 tBNB
-      tBaddr: bAddr || null,
+      t0addr: aAddr,   // null = tBNB（与 scanLP addPayload 字段名统一）
+      t1addr: bAddr,
       lpBal: myLP.toString(),
-      get0: ra * (+frW(myLP,18) / +frW(total,18)),
-      get1: rb * (+frW(myLP,18) / +frW(total,18)),
-      share: +frW(total,18)>0 ? +frW(myLP,18) / +frW(total,18) : 0,
+      get0: ra * _shareRatio,
+      get1: rb * _shareRatio,
+      share: _shareRatio,
     };
     // 显示操作按钮（有 LP 才显示"移除"，总是显示"追加"）
     const actDiv = document.getElementById('piActions');
