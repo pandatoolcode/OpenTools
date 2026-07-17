@@ -6,7 +6,7 @@
     <meta name="author" content="PandaTool">
     <meta name="copyright" content="PandaTool https://pandatool.org">
     <!-- Built by PandaTool | https://pandatool.org | https://t.me/pandatool -->
-    <title>TRON DEX - Nile Testnet | PandaTool</title>
+    <title>TRON DEX V2 + V3 - Nile Testnet | PandaTool</title>
     <script src="https://cdn.jsdelivr.net/npm/tronweb@5.3.0/dist/TronWeb.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
@@ -206,6 +206,59 @@
             cursor: pointer; transition: all .3s ease;
         }
         .preset-token-btn:hover { border-color: var(--secondary); color: var(--secondary); background: rgba(0,212,255,.05); }
+
+        /* ===== SunSwap V3 ===== */
+        .protocol-switch {
+            display:flex; gap:8px; padding:6px; margin-bottom:18px;
+            background:rgba(255,255,255,.025); border:1px solid var(--border); border-radius:15px;
+        }
+        .protocol-btn {
+            flex:1; padding:11px 12px; border:1px solid transparent; border-radius:11px;
+            background:transparent; color:var(--text-secondary); cursor:pointer;
+            font-family:'Orbitron',sans-serif; font-size:12px; font-weight:700; transition:.25s ease;
+        }
+        .protocol-btn.active {
+            color:#fff; border-color:rgba(255,255,255,.12);
+            background:linear-gradient(135deg,var(--primary),var(--secondary));
+            box-shadow:0 5px 18px rgba(255,0,102,.28);
+        }
+        .v3-badge {
+            display:inline-flex; align-items:center; gap:6px; padding:7px 11px; margin:4px 0 14px;
+            border:1px solid rgba(0,212,255,.45); border-radius:9px;
+            color:var(--secondary); background:rgba(0,212,255,.06); font-size:10px;
+        }
+        .fee-tier-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:7px; margin-top:7px; }
+        .fee-tier-btn {
+            padding:9px 5px; border-radius:8px; border:1px solid var(--border);
+            background:rgba(255,255,255,.03); color:var(--text-secondary); cursor:pointer;
+            font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; transition:.2s ease;
+        }
+        .fee-tier-btn.active { color:#fff; border-color:var(--secondary); background:rgba(0,212,255,.17); box-shadow:0 0 12px rgba(0,212,255,.15); }
+        .v3-two-col { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+        .v3-note {
+            padding:11px 12px; margin:10px 0; border-radius:9px; border:1px solid rgba(255,204,0,.35);
+            color:var(--accent); background:rgba(255,204,0,.055); font-size:10px; line-height:1.55;
+        }
+        .v3-position-card {
+            border:1px solid var(--border); border-radius:13px; padding:14px; margin-top:10px;
+            background:rgba(255,255,255,.02); transition:.2s ease;
+        }
+        .v3-position-card:hover { border-color:var(--secondary); transform:translateY(-1px); }
+        .v3-position-head { display:flex; justify-content:space-between; gap:10px; align-items:center; margin-bottom:9px; }
+        .v3-position-title { font-weight:700; font-size:12px; color:var(--text-primary); }
+        .v3-position-state { font-size:10px; padding:4px 8px; border-radius:12px; }
+        .v3-position-state.in { color:var(--success); background:rgba(0,255,136,.08); }
+        .v3-position-state.out { color:var(--accent); background:rgba(255,204,0,.08); }
+        .v3-card-actions { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:10px; }
+        .v3-mini-btn {
+            padding:8px; border-radius:8px; border:1px solid var(--border); cursor:pointer;
+            background:rgba(255,255,255,.04); color:var(--text-primary); font-family:'JetBrains Mono',monospace; font-size:10px;
+        }
+        .v3-mini-btn:hover { border-color:var(--secondary); color:var(--secondary); }
+        .v3-inline-check { display:flex; align-items:center; gap:8px; margin-top:10px; color:var(--text-secondary); font-size:10px; }
+        .v3-inline-check input { accent-color:var(--primary); }
+        .v3-address { font-size:8.8px!important; word-break:break-all; }
+        @media(max-width:520px){.fee-tier-grid{grid-template-columns:repeat(2,1fr)}.v3-two-col{grid-template-columns:1fr}.protocol-btn{font-size:10px}}
         /* Remove liquidity */
         .percent-display { font-size: 32px; font-weight: 700; color: var(--primary); text-align: center; margin: 12px 0; }
         .percent-slider { width: 100%; accent-color: var(--primary); cursor: pointer; margin: 8px 0; height: 6px; }
@@ -244,6 +297,12 @@
         <!-- ===== LEFT CARD ===== -->
         <div class="card">
             <h2 class="card-title">💰 交易面板</h2>
+            <div class="protocol-switch">
+                <button class="protocol-btn active" data-protocol="v2">SunSwap V2</button>
+                <button class="protocol-btn" data-protocol="v3">SunSwap V3</button>
+            </div>
+
+            <div id="v2ProtocolPanel">
             <div class="tabs">
                 <button class="tab active" data-tab="swap">🔄 兑换</button>
                 <button class="tab" data-tab="addLiquidity">➕ 添加流动性</button>
@@ -425,6 +484,171 @@
                 </div>
             </div>
 
+
+            </div><!-- /v2ProtocolPanel -->
+
+            <!-- ===== SUNSWAP V3 ===== -->
+            <div id="v3ProtocolPanel" style="display:none">
+                <div class="tabs">
+                    <button class="tab active" data-v3tab="v3Swap">⚡ V3 兑换</button>
+                    <button class="tab" data-v3tab="v3Mint">🧭 创建仓位</button>
+                    <button class="tab" data-v3tab="v3Increase">➕ 增加仓位</button>
+                    <button class="tab" data-v3tab="v3Manage">🧾 移除/领取</button>
+                </div>
+                <div class="v3-badge">⚡ SunSwap V3 · 集中流动性 · Nile Testnet</div>
+
+                <!-- V3 SWAP -->
+                <div id="v3SwapPanel">
+                    <div class="input-group">
+                        <label class="input-label">📥 支付 (From)</label>
+                        <input class="token-address-input" id="v3FromAddress" value="TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf" placeholder="代币地址，TRX 输入 TRX">
+                        <div class="preset-tokens">
+                            <button class="preset-token-btn" onclick="setV3Token('v3FromAddress','TRX','v3From')">🔥 TRX</button>
+                            <button class="preset-token-btn" onclick="setV3Token('v3FromAddress','TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf','v3From')">💵 USDT</button>
+                            <button class="preset-token-btn" onclick="setV3Token('v3FromAddress','TEMVynQpntMqkPxP6wXTW2K7e4sM3cRmWz','v3From')">💲 USDC</button>
+                            <button class="preset-token-btn" onclick="setV3Token('v3FromAddress','TFT7sNiNDGZcqL7z7dwXUPpxrx1Ewk8iGL','v3From')">🪙 USDD</button>
+                        </div>
+                        <button class="query-btn" id="v3QueryFrom" style="width:100%">🔍 查询支付代币</button>
+                        <div class="input-wrapper" style="margin-top:7px">
+                            <input type="number" class="token-input" id="v3FromAmount" placeholder="0.0" step="any">
+                            <span class="token-symbol-display" id="v3FromSymbol">---</span>
+                        </div>
+                        <div class="balance"><span>💰 余额: <span id="v3FromBalance">0.0000</span> <span id="v3FromBalanceSymbol"></span></span><button class="max-btn" id="v3MaxBtn">MAX</button></div>
+                    </div>
+                    <div class="swap-arrow"><button class="swap-arrow-btn" id="v3SwapDirection">⇅</button></div>
+                    <div class="input-group">
+                        <label class="input-label">📤 接收 (To)</label>
+                        <input class="token-address-input" id="v3ToAddress" value="TEMVynQpntMqkPxP6wXTW2K7e4sM3cRmWz" placeholder="代币地址，TRX 输入 TRX">
+                        <div class="preset-tokens">
+                            <button class="preset-token-btn" onclick="setV3Token('v3ToAddress','TRX','v3To')">🔥 TRX</button>
+                            <button class="preset-token-btn" onclick="setV3Token('v3ToAddress','TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf','v3To')">💵 USDT</button>
+                            <button class="preset-token-btn" onclick="setV3Token('v3ToAddress','TEMVynQpntMqkPxP6wXTW2K7e4sM3cRmWz','v3To')">💲 USDC</button>
+                            <button class="preset-token-btn" onclick="setV3Token('v3ToAddress','TFT7sNiNDGZcqL7z7dwXUPpxrx1Ewk8iGL','v3To')">🪙 USDD</button>
+                        </div>
+                        <button class="query-btn" id="v3QueryTo" style="width:100%">🔍 查询接收代币</button>
+                        <div class="input-wrapper" style="margin-top:7px">
+                            <input type="number" class="token-input" id="v3ToAmount" placeholder="0.0" readonly>
+                            <span class="token-symbol-display" id="v3ToSymbol">---</span>
+                        </div>
+                        <div class="balance"><span>💰 余额: <span id="v3ToBalance">0.0000</span> <span id="v3ToBalanceSymbol"></span></span></div>
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">🏷️ Fee Tier</label>
+                        <div class="fee-tier-grid" data-fee-group="swap">
+                            <button class="fee-tier-btn" data-fee="100">0.01%</button>
+                            <button class="fee-tier-btn" data-fee="500">0.05%</button>
+                            <button class="fee-tier-btn active" data-fee="3000">0.30%</button>
+                            <button class="fee-tier-btn" data-fee="10000">1.00%</button>
+                        </div>
+                    </div>
+                    <div class="info-box">
+                        <div class="info-row"><span class="info-label">🏊 Pool</span><span class="info-value v3-address" id="v3SwapPool">-</span></div>
+                        <div class="info-row"><span class="info-label">📊 兑换率</span><span class="info-value" id="v3SwapRate">-</span></div>
+                        <div class="info-row"><span class="info-label">📦 最少收到</span><span class="info-value" id="v3SwapMin">-</span></div>
+                    </div>
+                    <div class="v3-note">TRX 会先通过官方 Nile WTRX 合约封装；接收 TRX 时会在兑换确认后自动解包，因此可能出现两次钱包确认。</div>
+                    <button class="action-btn" id="v3SwapBtn" disabled>⚡ 执行 V3 兑换</button>
+                </div>
+
+                <!-- V3 MINT -->
+                <div id="v3MintPanel" style="display:none">
+                    <div class="input-group">
+                        <label class="input-label">🪙 Token A</label>
+                        <input class="token-address-input" id="v3MintAAddress" value="TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf" placeholder="Token A 地址，TRX 输入 TRX">
+                        <div class="preset-tokens">
+                            <button class="preset-token-btn" onclick="setV3Token('v3MintAAddress','TRX','v3MintA')">🔥 TRX</button>
+                            <button class="preset-token-btn" onclick="setV3Token('v3MintAAddress','TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf','v3MintA')">💵 USDT</button>
+                            <button class="preset-token-btn" onclick="setV3Token('v3MintAAddress','TEMVynQpntMqkPxP6wXTW2K7e4sM3cRmWz','v3MintA')">💲 USDC</button>
+                        </div>
+                        <button class="query-btn" id="v3QueryMintA" style="width:100%">🔍 查询 Token A</button>
+                        <div class="input-wrapper" style="margin-top:7px"><input type="number" class="token-input" id="v3MintAAmount" placeholder="0.0" step="any"><span class="token-symbol-display" id="v3MintASymbol">---</span></div>
+                        <div class="balance"><span>💰 余额: <span id="v3MintABalance">0.0000</span></span></div>
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">🪙 Token B</label>
+                        <input class="token-address-input" id="v3MintBAddress" value="TEMVynQpntMqkPxP6wXTW2K7e4sM3cRmWz" placeholder="Token B 地址，TRX 输入 TRX">
+                        <div class="preset-tokens">
+                            <button class="preset-token-btn" onclick="setV3Token('v3MintBAddress','TRX','v3MintB')">🔥 TRX</button>
+                            <button class="preset-token-btn" onclick="setV3Token('v3MintBAddress','TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf','v3MintB')">💵 USDT</button>
+                            <button class="preset-token-btn" onclick="setV3Token('v3MintBAddress','TEMVynQpntMqkPxP6wXTW2K7e4sM3cRmWz','v3MintB')">💲 USDC</button>
+                        </div>
+                        <button class="query-btn" id="v3QueryMintB" style="width:100%">🔍 查询 Token B</button>
+                        <div class="input-wrapper" style="margin-top:7px"><input type="number" class="token-input" id="v3MintBAmount" placeholder="0.0" step="any"><span class="token-symbol-display" id="v3MintBSymbol">---</span></div>
+                        <div class="balance"><span>💰 余额: <span id="v3MintBBalance">0.0000</span></span></div>
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">🏷️ Fee Tier</label>
+                        <div class="fee-tier-grid" data-fee-group="mint">
+                            <button class="fee-tier-btn" data-fee="100">0.01%</button>
+                            <button class="fee-tier-btn" data-fee="500">0.05%</button>
+                            <button class="fee-tier-btn active" data-fee="3000">0.30%</button>
+                            <button class="fee-tier-btn" data-fee="10000">1.00%</button>
+                        </div>
+                    </div>
+                    <button class="query-btn" id="v3CheckMintPool" style="width:100%;padding:10px">🔍 查询 Pool 与当前价格</button>
+                    <div class="info-box">
+                        <div class="info-row"><span class="info-label">🏊 Pool 状态</span><span class="info-value" id="v3MintPoolStatus">尚未查询</span></div>
+                        <div class="info-row"><span class="info-label">🔗 Pool 地址</span><span class="info-value v3-address" id="v3MintPoolAddress">-</span></div>
+                        <div class="info-row"><span class="info-label">📊 当前价格</span><span class="info-value" id="v3MintCurrentPrice">-</span></div>
+                        <div class="info-row"><span class="info-label">📐 Tick Spacing</span><span class="info-value" id="v3MintTickSpacing">-</span></div>
+                    </div>
+                    <div class="input-group" id="v3InitialPriceGroup" style="display:none">
+                        <label class="input-label">🌱 新池初始价格（1 Token A = ? Token B）</label>
+                        <input type="number" class="token-address-input" id="v3InitialPrice" placeholder="例如 1.0" step="any">
+                    </div>
+                    <div class="v3-two-col">
+                        <div class="input-group"><label class="input-label">⬇️ 最低价格（1 A = ? B）</label><input type="number" class="token-address-input" id="v3PriceLower" placeholder="最低价格" step="any"></div>
+                        <div class="input-group"><label class="input-label">⬆️ 最高价格（1 A = ? B）</label><input type="number" class="token-address-input" id="v3PriceUpper" placeholder="最高价格" step="any"></div>
+                    </div>
+                    <div class="info-box">
+                        <div class="info-row"><span class="info-label">Token0 / Token1</span><span class="info-value" id="v3MintTokenOrder">-</span></div>
+                        <div class="info-row"><span class="info-label">Tick Lower / Upper</span><span class="info-value" id="v3MintTicks">-</span></div>
+                    </div>
+                    <div class="v3-note">V3 仓位是 NFT。价格区间外的仓位将只持有单边资产。首次创建 Pool 时需设置初始价格；测试网版本的流动性最小数量设为 0，以避免区间计算误差导致回滚。</div>
+                    <button class="action-btn" id="v3MintBtn">🧭 创建 V3 仓位 NFT</button>
+                </div>
+
+                <!-- V3 INCREASE -->
+                <div id="v3IncreasePanel" style="display:none">
+                    <div class="input-group"><label class="input-label">🎫 Position NFT Token ID</label><input class="token-address-input" id="v3IncreaseTokenId" placeholder="例如 123"><button class="query-btn" id="v3QueryIncreasePosition" style="width:100%">🔍 查询仓位</button></div>
+                    <div class="info-box" id="v3IncreaseInfo">
+                        <div class="info-row"><span class="info-label">交易对</span><span class="info-value" id="v3IncreasePair">-</span></div>
+                        <div class="info-row"><span class="info-label">Fee / Range</span><span class="info-value" id="v3IncreaseRange">-</span></div>
+                        <div class="info-row"><span class="info-label">当前 Liquidity</span><span class="info-value" id="v3IncreaseLiquidity">-</span></div>
+                    </div>
+                    <div class="input-group"><label class="input-label">Token0 增加数量</label><div class="input-wrapper"><input type="number" class="token-input" id="v3IncreaseAmount0" placeholder="0.0" step="any"><span class="token-symbol-display" id="v3IncreaseSymbol0">---</span></div></div>
+                    <div class="input-group"><label class="input-label">Token1 增加数量</label><div class="input-wrapper"><input type="number" class="token-input" id="v3IncreaseAmount1" placeholder="0.0" step="any"><span class="token-symbol-display" id="v3IncreaseSymbol1">---</span></div></div>
+                    <div class="v3-note">输入按仓位内部 Token0 / Token1 顺序显示。TRX 仓位实际使用 WTRX，提交前会自动封装。</div>
+                    <button class="action-btn" id="v3IncreaseBtn">➕ 增加 V3 流动性</button>
+                </div>
+
+                <!-- V3 MANAGE -->
+                <div id="v3ManagePanel" style="display:none">
+                    <button class="query-btn" id="v3LoadPositions" style="width:100%;padding:10px">📚 加载我的 V3 仓位</button>
+                    <div id="v3PositionsList"><div data-v3-empty="1" style="text-align:center;padding:20px;color:var(--text-secondary)">连接钱包后加载仓位</div></div>
+                    <div class="input-group" style="margin-top:18px"><label class="input-label">🎫 管理 Token ID</label><input class="token-address-input" id="v3ManageTokenId" placeholder="输入 Position NFT Token ID"><button class="query-btn" id="v3QueryManagePosition" style="width:100%">🔍 查询此仓位</button></div>
+                    <div class="info-box">
+                        <div class="info-row"><span class="info-label">交易对</span><span class="info-value" id="v3ManagePair">-</span></div>
+                        <div class="info-row"><span class="info-label">Fee / Tick Range</span><span class="info-value" id="v3ManageRange">-</span></div>
+                        <div class="info-row"><span class="info-label">Liquidity</span><span class="info-value" id="v3ManageLiquidity">-</span></div>
+                        <div class="info-row"><span class="info-label">记录中的待领取</span><span class="info-value" id="v3ManageOwed">-</span></div>
+                    </div>
+                    <label class="input-label" style="margin-top:15px">📏 移除比例</label>
+                    <div class="percent-display" id="v3RemovePercent">50%</div>
+                    <input type="range" class="percent-slider" id="v3RemoveSlider" min="1" max="100" value="50">
+                    <div class="quick-pcts">
+                        <button class="quick-pct-btn" onclick="setV3RemovePct(25)">25%</button><button class="quick-pct-btn" onclick="setV3RemovePct(50)">50%</button><button class="quick-pct-btn" onclick="setV3RemovePct(75)">75%</button><button class="quick-pct-btn" onclick="setV3RemovePct(100)">全部</button>
+                    </div>
+                    <div class="info-box"><div class="info-row"><span class="info-label">预计减少 Liquidity</span><span class="info-value" id="v3LiquidityToRemove">-</span></div></div>
+                    <label class="v3-inline-check"><input type="checkbox" id="v3BurnAfterRemove">全部移除并领取后销毁空 NFT</label>
+                    <div class="v3-card-actions">
+                        <button class="action-btn" id="v3CollectBtn" style="margin-top:10px">💰 仅领取</button>
+                        <button class="action-btn danger-btn" id="v3RemoveBtn" style="margin-top:10px">🔥 移除并领取</button>
+                    </div>
+                    <div class="v3-note">“待领取”字段是 Position 合约上次结算时的记录值；点击领取会在链上重新结算。移除流动性与领取通常会产生两笔交易。</div>
+                </div>
+            </div><!-- /v3ProtocolPanel -->
+
             <!-- SETTINGS -->
             <div class="settings">
                 <div class="settings-title">⚙️ 滑点容忍度</div>
@@ -451,6 +675,12 @@
                     <span class="info-label">🏭 V2 Factory</span>
                     <span class="info-value" style="font-size:9px;word-break:break-all">THomLGMLhAjMecQf9FQjbZ8a1RtwsZLrGE</span>
                 </div>
+
+                <div class="info-row"><span class="info-label">⚡ V3 Router</span><span class="info-value v3-address">TFkswj6rUfK3cQtFGzungCkNXxD2UCpEVD</span></div>
+                <div class="info-row"><span class="info-label">🏭 V3 Factory</span><span class="info-value v3-address">TUTGcsGDRScK1gsDPMELV2QZxeESWb1Gac</span></div>
+                <div class="info-row"><span class="info-label">💬 V3 Quoter</span><span class="info-value v3-address">TUcM2gkpWEJxBpkweLdVoRp6DAUsw2vWR6</span></div>
+                <div class="info-row"><span class="info-label">🎫 Position Manager</span><span class="info-value v3-address">TPQzqHbCzQfoVdAV6bLwGDos8Lk2UjXz2R</span></div>
+                <div class="info-row"><span class="info-label">🔥 Nile WTRX</span><span class="info-value v3-address">TYsbWxNnyTgsZaTFaue9hqpxkU3Fkco94a</span></div>
 
                 <div class="info-row">
                     <span class="info-label">🌐 网络</span>
@@ -489,6 +719,15 @@
 const CONFIG = {
     V2_ROUTER:  'TMn1qrmYUMSTXo9babrJLzepKZoPC7M6Sy',
     V2_FACTORY: 'THomLGMLhAjMecQf9FQjbZ8a1RtwsZLrGE',
+
+    // Official SunSwap V3 deployments — Nile Testnet
+    V3_FACTORY:          'TUTGcsGDRScK1gsDPMELV2QZxeESWb1Gac',
+    V3_ROUTER:           'TFkswj6rUfK3cQtFGzungCkNXxD2UCpEVD',
+    V3_POSITION_MANAGER: 'TPQzqHbCzQfoVdAV6bLwGDos8Lk2UjXz2R',
+    V3_QUOTER:           'TUcM2gkpWEJxBpkweLdVoRp6DAUsw2vWR6',
+    V3_TICK_LENS:        'TXWuk11iagFK2qAWbBsP58A5ncU5L1LYq5',
+    V3_WTRX:             'TYsbWxNnyTgsZaTFaue9hqpxkU3Fkco94a',
+
     EXPLORER:   'https://nile.tronscan.org',
     FEE_LIMIT:  1000000000, // 1000 TRX (测试网宽松)
     _author:    'PandaTool'  // https://pandatool.org
@@ -531,10 +770,84 @@ const V2_PAIR_ABI = [
     {inputs:[{name:'owner',type:'address'},{name:'spender',type:'address'}],name:'allowance',outputs:[{name:'',type:'uint256'}],stateMutability:'view',type:'Function'}
 ];
 
+const WTRX_ABI = [
+    {inputs:[],name:'deposit',outputs:[],stateMutability:'payable',type:'Function'},
+    {inputs:[{name:'wad',type:'uint256'}],name:'withdraw',outputs:[],stateMutability:'nonpayable',type:'Function'},
+    {inputs:[{name:'who',type:'address'}],name:'balanceOf',outputs:[{name:'',type:'uint256'}],stateMutability:'view',type:'Function'},
+    {inputs:[{name:'spender',type:'address'},{name:'value',type:'uint256'}],name:'approve',outputs:[{name:'',type:'bool'}],stateMutability:'nonpayable',type:'Function'},
+    {inputs:[{name:'owner',type:'address'},{name:'spender',type:'address'}],name:'allowance',outputs:[{name:'',type:'uint256'}],stateMutability:'view',type:'Function'},
+    {inputs:[],name:'symbol',outputs:[{name:'',type:'string'}],stateMutability:'view',type:'Function'},
+    {inputs:[],name:'decimals',outputs:[{name:'',type:'uint8'}],stateMutability:'view',type:'Function'}
+];
+
+const V3_FACTORY_ABI = [
+    {inputs:[{name:'tokenA',type:'address'},{name:'tokenB',type:'address'},{name:'fee',type:'uint24'}],name:'getPool',outputs:[{name:'pool',type:'address'}],stateMutability:'view',type:'Function'},
+    {inputs:[{name:'fee',type:'uint24'}],name:'feeAmountTickSpacing',outputs:[{name:'',type:'int24'}],stateMutability:'view',type:'Function'}
+];
+
+const V3_POOL_ABI = [
+    {inputs:[],name:'slot0',outputs:[
+        {name:'sqrtPriceX96',type:'uint160'},{name:'tick',type:'int24'},{name:'observationIndex',type:'uint16'},
+        {name:'observationCardinality',type:'uint16'},{name:'observationCardinalityNext',type:'uint16'},
+        {name:'feeProtocol',type:'uint8'},{name:'unlocked',type:'bool'}
+    ],stateMutability:'view',type:'Function'},
+    {inputs:[],name:'liquidity',outputs:[{name:'',type:'uint128'}],stateMutability:'view',type:'Function'},
+    {inputs:[],name:'token0',outputs:[{name:'',type:'address'}],stateMutability:'view',type:'Function'},
+    {inputs:[],name:'token1',outputs:[{name:'',type:'address'}],stateMutability:'view',type:'Function'},
+    {inputs:[],name:'fee',outputs:[{name:'',type:'uint24'}],stateMutability:'view',type:'Function'},
+    {inputs:[],name:'tickSpacing',outputs:[{name:'',type:'int24'}],stateMutability:'view',type:'Function'}
+];
+
+const V3_QUOTER_ABI = [
+    {inputs:[{name:'tokenIn',type:'address'},{name:'tokenOut',type:'address'},{name:'fee',type:'uint24'},{name:'amountIn',type:'uint256'},{name:'sqrtPriceLimitX96',type:'uint160'}],name:'quoteExactInputSingle',outputs:[{name:'amountOut',type:'uint256'}],stateMutability:'nonpayable',type:'Function'}
+];
+
+const V3_ROUTER_ABI = [
+    {inputs:[{components:[
+        {name:'tokenIn',type:'address'},{name:'tokenOut',type:'address'},{name:'fee',type:'uint24'},
+        {name:'recipient',type:'address'},{name:'deadline',type:'uint256'},{name:'amountIn',type:'uint256'},
+        {name:'amountOutMinimum',type:'uint256'},{name:'sqrtPriceLimitX96',type:'uint160'}
+    ],name:'params',type:'tuple'}],name:'exactInputSingle',outputs:[{name:'amountOut',type:'uint256'}],stateMutability:'payable',type:'Function'}
+];
+
+const V3_POSITION_MANAGER_ABI = [
+    {inputs:[{name:'owner',type:'address'}],name:'balanceOf',outputs:[{name:'balance',type:'uint256'}],stateMutability:'view',type:'Function'},
+    {inputs:[{name:'owner',type:'address'},{name:'index',type:'uint256'}],name:'tokenOfOwnerByIndex',outputs:[{name:'tokenId',type:'uint256'}],stateMutability:'view',type:'Function'},
+    {inputs:[{name:'tokenId',type:'uint256'}],name:'ownerOf',outputs:[{name:'owner',type:'address'}],stateMutability:'view',type:'Function'},
+    {inputs:[{name:'tokenId',type:'uint256'}],name:'positions',outputs:[
+        {name:'nonce',type:'uint96'},{name:'operator',type:'address'},{name:'token0',type:'address'},
+        {name:'token1',type:'address'},{name:'fee',type:'uint24'},{name:'tickLower',type:'int24'},
+        {name:'tickUpper',type:'int24'},{name:'liquidity',type:'uint128'},
+        {name:'feeGrowthInside0LastX128',type:'uint256'},{name:'feeGrowthInside1LastX128',type:'uint256'},
+        {name:'tokensOwed0',type:'uint128'},{name:'tokensOwed1',type:'uint128'}
+    ],stateMutability:'view',type:'Function'},
+    {inputs:[{name:'token0',type:'address'},{name:'token1',type:'address'},{name:'fee',type:'uint24'},{name:'sqrtPriceX96',type:'uint160'}],name:'createAndInitializePoolIfNecessary',outputs:[{name:'pool',type:'address'}],stateMutability:'payable',type:'Function'},
+    {inputs:[{components:[
+        {name:'token0',type:'address'},{name:'token1',type:'address'},{name:'fee',type:'uint24'},
+        {name:'tickLower',type:'int24'},{name:'tickUpper',type:'int24'},
+        {name:'amount0Desired',type:'uint256'},{name:'amount1Desired',type:'uint256'},
+        {name:'amount0Min',type:'uint256'},{name:'amount1Min',type:'uint256'},
+        {name:'recipient',type:'address'},{name:'deadline',type:'uint256'}
+    ],name:'params',type:'tuple'}],name:'mint',outputs:[{name:'tokenId',type:'uint256'},{name:'liquidity',type:'uint128'},{name:'amount0',type:'uint256'},{name:'amount1',type:'uint256'}],stateMutability:'payable',type:'Function'},
+    {inputs:[{components:[
+        {name:'tokenId',type:'uint256'},{name:'amount0Desired',type:'uint256'},{name:'amount1Desired',type:'uint256'},
+        {name:'amount0Min',type:'uint256'},{name:'amount1Min',type:'uint256'},{name:'deadline',type:'uint256'}
+    ],name:'params',type:'tuple'}],name:'increaseLiquidity',outputs:[{name:'liquidity',type:'uint128'},{name:'amount0',type:'uint256'},{name:'amount1',type:'uint256'}],stateMutability:'payable',type:'Function'},
+    {inputs:[{components:[
+        {name:'tokenId',type:'uint256'},{name:'liquidity',type:'uint128'},{name:'amount0Min',type:'uint256'},
+        {name:'amount1Min',type:'uint256'},{name:'deadline',type:'uint256'}
+    ],name:'params',type:'tuple'}],name:'decreaseLiquidity',outputs:[{name:'amount0',type:'uint256'},{name:'amount1',type:'uint256'}],stateMutability:'payable',type:'Function'},
+    {inputs:[{components:[
+        {name:'tokenId',type:'uint256'},{name:'recipient',type:'address'},{name:'amount0Max',type:'uint128'},{name:'amount1Max',type:'uint128'}
+    ],name:'params',type:'tuple'}],name:'collect',outputs:[{name:'amount0',type:'uint256'},{name:'amount1',type:'uint256'}],stateMutability:'payable',type:'Function'},
+    {inputs:[{name:'tokenId',type:'uint256'}],name:'burn',outputs:[],stateMutability:'payable',type:'Function'}
+];
+
+
 
 
 /* ================================================================
-   State — PandaTool Nile DEX v1.0
+   State — PandaTool Nile DEX v2.0 (V2 + V3)
    https://pandatool.org | https://t.me/pandatool
    ================================================================ */
 let tronWeb = null, userAddress = null;
@@ -605,6 +918,7 @@ async function connectWallet() {
             btn.style.background = 'linear-gradient(135deg,#00ff88,#00cc66)';
             showStatus('✅ 钱包已连接', 'success', 3000);
             queryFromToken(); queryToToken();
+            queryV3Field('v3FromAddress','v3From','v3From'); queryV3Field('v3ToAddress','v3To','v3To');
         } else showStatus('❌ 连接失败', 'error');
     } catch(e) { showStatus('❌ '+e.message, 'error'); }
 }
@@ -1343,6 +1657,461 @@ async function removeLiquidity(){
     } finally{btn.disabled=false;}
 }
 
+
+/* ================================================================
+   SunSwap V3 — full Nile integration
+   Swap / mint / increase / decrease / collect / enumerate positions
+   ================================================================ */
+const V3_ZERO_ADDRESS = 'T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb';
+const V3_MAX_UINT128 = (1n << 128n) - 1n;
+let v3SwapFee = 3000;
+let v3MintFee = 3000;
+let v3SwapQuoteRaw = 0n;
+let v3MintPoolState = null;
+let v3IncreasePosition = null;
+let v3ManagePosition = null;
+
+function v3Big(v){
+    if(typeof v==='bigint') return v;
+    if(v===undefined||v===null) return 0n;
+    if(typeof v==='object'){
+        if(v._hex) return BigInt(v._hex);
+        if(v._isBigNumber&&v.toString) return BigInt(v.toString());
+    }
+    return BigInt(String(v));
+}
+function v3Num(v){
+    if(typeof v==='number') return v;
+    if(v&&typeof v==='object'&&v.toString) return Number(v.toString());
+    return Number(v||0);
+}
+function v3Result(r, name, index){
+    if(r&&r[name]!==undefined) return r[name];
+    if(r&&r[index]!==undefined) return r[index];
+    return undefined;
+}
+function v3ToBase58(addr){
+    let a=String(addr||'').trim();
+    if(!a) return '';
+    if(a.startsWith('T')) return a;
+    try{
+        if(a.startsWith('0x')) a='41'+a.slice(2).padStart(40,'0');
+        if(/^[0-9a-fA-F]{40}$/.test(a)) a='41'+a;
+        if(/^41[0-9a-fA-F]{40}$/.test(a)) return tronWeb.address.fromHex(a);
+    }catch(e){}
+    return a;
+}
+function v3IsZeroAddress(addr){
+    const a=String(addr||'').trim();
+    return !a||a===V3_ZERO_ADDRESS||/^0x0{40}$/i.test(a)||/^410{40}$/i.test(a);
+}
+function v3TokenAddress(info){ return isTrx(info.address)?CONFIG.V3_WTRX:info.address; }
+function v3DisplaySymbol(addr, info){
+    return String(v3ToBase58(addr))===CONFIG.V3_WTRX?'TRX':(info?info.symbol:'?');
+}
+function v3HexSortKey(addr){
+    try{return tronWeb.address.toHex(addr).toLowerCase();}catch(e){return String(addr).toLowerCase();}
+}
+function v3SortTokens(infoA, infoB){
+    const addrA=v3TokenAddress(infoA), addrB=v3TokenAddress(infoB);
+    if(v3HexSortKey(addrA)===v3HexSortKey(addrB)) throw new Error('请选择不同的代币');
+    const a0=v3HexSortKey(addrA)<v3HexSortKey(addrB);
+    return {token0:a0?addrA:addrB,token1:a0?addrB:addrA,info0:a0?infoA:infoB,info1:a0?infoB:infoA,aIs0:a0};
+}
+async function v3TokenInfoByAddress(address, cacheKey){
+    const base=v3ToBase58(address);
+    if(base===CONFIG.V3_WTRX){
+        const info=await queryTokenInfo('TRX',cacheKey);
+        if(info){info.contractAddress=CONFIG.V3_WTRX;info.isWrappedNative=true;}
+        return info;
+    }
+    return await queryTokenInfo(base,cacheKey);
+}
+function v3SetDisplay(prefix,info){ updateTokenDisplay(prefix,info); }
+function setV3Token(inputId,address,cacheKey){
+    document.getElementById(inputId).value=address;
+    const map={v3From:'v3QueryFrom',v3To:'v3QueryTo',v3MintA:'v3QueryMintA',v3MintB:'v3QueryMintB'};
+    const el=document.getElementById(map[cacheKey]); if(el) el.click();
+}
+async function queryV3Field(inputId,cacheKey,prefix,after){
+    const info=await queryTokenInfo(document.getElementById(inputId).value.trim(),cacheKey);
+    if(info){v3SetDisplay(prefix,info);if(after)await after();}
+    return info;
+}
+async function v3WtrxBalance(){
+    const c=await tronWeb.contract(WTRX_ABI,CONFIG.V3_WTRX);
+    return v3Big(await c.balanceOf(userAddress).call());
+}
+async function v3WrapTrx(amount,label){
+    if(amount<=0n)return null;
+    showStatus(`🔥 正在封装 ${label||'TRX'} 为 WTRX...`,'info');
+    const c=await tronWeb.contract(WTRX_ABI,CONFIG.V3_WTRX);
+    const tx=await c.deposit().send({callValue:amount.toString(),feeLimit:CONFIG.FEE_LIMIT});
+    const ok=await checkTxResult(tx,12,2500);
+    if(ok===false) throw new Error('TRX 封装 WTRX 失败');
+    showStatus('✅ TRX 已封装为 WTRX','success',2500);
+    return tx;
+}
+async function v3UnwrapWtrx(amount){
+    if(amount<=0n)return null;
+    showStatus('🔥 正在将 WTRX 解包为 TRX...','info');
+    const c=await tronWeb.contract(WTRX_ABI,CONFIG.V3_WTRX);
+    const tx=await c.withdraw(amount.toString()).send({feeLimit:CONFIG.FEE_LIMIT,callValue:0});
+    const ok=await checkTxResult(tx,12,2500);
+    if(ok===false) throw new Error('WTRX 解包失败；WTRX 已保留在钱包中');
+    return tx;
+}
+async function v3EnsureTokenReady(info,spender,amount){
+    if(isTrx(info.address)){
+        const bal=await v3WtrxBalance();
+        if(bal<amount) await v3WrapTrx(amount-bal,formatUnits(amount-bal,6,6)+' TRX');
+        return ensureApproval(CONFIG.V3_WTRX,spender,amount,'WTRX');
+    }
+    return ensureApproval(info.address,spender,amount,info.symbol);
+}
+async function v3GetPool(tokenA,tokenB,fee){
+    const f=await tronWeb.contract(V3_FACTORY_ABI,CONFIG.V3_FACTORY);
+    const r=await f.getPool(tokenA,tokenB,fee).call();
+    return v3ToBase58(r);
+}
+async function v3GetTickSpacing(fee){
+    const f=await tronWeb.contract(V3_FACTORY_ABI,CONFIG.V3_FACTORY);
+    return v3Num(await f.feeAmountTickSpacing(fee).call());
+}
+async function v3ReadPool(pool){
+    const c=await tronWeb.contract(V3_POOL_ABI,pool);
+    const [slot,liq,t0,t1,fee,spacing]=await Promise.all([
+        c.slot0().call(),c.liquidity().call(),c.token0().call(),c.token1().call(),c.fee().call(),c.tickSpacing().call()
+    ]);
+    return {
+        pool, sqrtPriceX96:v3Big(v3Result(slot,'sqrtPriceX96',0)), tick:v3Num(v3Result(slot,'tick',1)),
+        liquidity:v3Big(liq), token0:v3ToBase58(t0),token1:v3ToBase58(t1),fee:v3Num(fee),tickSpacing:v3Num(spacing)
+    };
+}
+function v3PriceFromSqrt(sqrtX96,dec0,dec1){
+    const s=Number(sqrtX96)/Math.pow(2,96);
+    return s*s*Math.pow(10,dec0-dec1);
+}
+function v3PriceFromTick(tick,dec0,dec1){ return Math.pow(1.0001,tick)*Math.pow(10,dec0-dec1); }
+function v3TickFromHumanPrice(price,dec0,dec1){
+    const raw=Number(price)*Math.pow(10,dec1-dec0);
+    if(!isFinite(raw)||raw<=0) throw new Error('价格必须大于 0');
+    return Math.floor(Math.log(raw)/Math.log(1.0001));
+}
+function v3FloorTick(tick,spacing){ return Math.floor(tick/spacing)*spacing; }
+function v3CeilTick(tick,spacing){ return Math.ceil(tick/spacing)*spacing; }
+function v3ClampTick(t){ return Math.max(-887272,Math.min(887272,t)); }
+function v3Pow10(n){return 10n**BigInt(Math.max(0,n));}
+function v3DecimalFraction(value,precision=18){
+    let s=String(value).trim();
+    if(!/^\d+(\.\d+)?$/.test(s)||Number(s)<=0)throw new Error('无效初始价格');
+    let [w,f='']=s.split('.'); f=f.slice(0,precision).replace(/0+$/,'');
+    return {num:BigInt(w+(f||'')),den:v3Pow10(f.length)};
+}
+function v3SqrtBigInt(value){
+    if(value<0n)throw new Error('负数不能开方');
+    if(value<2n)return value;
+    const bits=BigInt(value.toString(2).length);
+    let x0=1n<<((bits+1n)>>1n);
+    let x1=(x0+value/x0)>>1n;
+    while(x1<x0){x0=x1;x1=(x0+value/x0)>>1n;}
+    return x0;
+}
+function v3EncodeSqrtPriceX96(humanPrice,dec0,dec1){
+    let {num,den}=v3DecimalFraction(humanPrice,18);
+    if(dec1>=dec0) num*=v3Pow10(dec1-dec0); else den*=v3Pow10(dec0-dec1);
+    const ratioX192=(num<<192n)/den;
+    const sqrt=v3SqrtBigInt(ratioX192);
+    if(sqrt<=0n||(sqrt>=(1n<<160n)))throw new Error('初始价格超出 V3 范围');
+    return sqrt;
+}
+function v3FeeText(fee){return (Number(fee)/10000).toFixed(Number(fee)===100?2:2)+'%';}
+function v3Deadline(){return Math.floor(Date.now()/1000)+1200;}
+
+async function updateV3SwapQuote(){
+    const btn=document.getElementById('v3SwapBtn');
+    const clear=()=>{v3SwapQuoteRaw=0n;document.getElementById('v3ToAmount').value='';document.getElementById('v3SwapPool').textContent='-';document.getElementById('v3SwapRate').textContent='-';document.getElementById('v3SwapMin').textContent='-';btn.disabled=true;};
+    if(!tronWeb||!userAddress){clear();return;}
+    const fi=tokenCache.v3From,ti=tokenCache.v3To,amt=document.getElementById('v3FromAmount').value;
+    if(!fi||!ti||!amt||Number(amt)<=0){clear();return;}
+    try{
+        const input=v3TokenAddress(fi),output=v3TokenAddress(ti);
+        if(v3HexSortKey(input)===v3HexSortKey(output))throw new Error('请选择不同代币');
+        const pool=await v3GetPool(input,output,v3SwapFee);
+        if(v3IsZeroAddress(pool)){clear();document.getElementById('v3SwapPool').textContent='该 Fee Tier 无 Pool';return;}
+        document.getElementById('v3SwapPool').textContent=pool;
+        const amountIn=parseUnits(amt,fi.decimals);
+        const q=await tronWeb.contract(V3_QUOTER_ABI,CONFIG.V3_QUOTER);
+        const r=await q.quoteExactInputSingle(input,output,v3SwapFee,amountIn.toString(),'0').call();
+        const out=v3Big(r); if(out<=0n)throw new Error('报价为 0');
+        v3SwapQuoteRaw=out;
+        const disp=formatUnits(out,ti.decimals,6); document.getElementById('v3ToAmount').value=disp;
+        document.getElementById('v3SwapRate').textContent=`1 ${fi.symbol} ≈ ${(Number(disp)/Number(amt)).toFixed(6)} ${ti.symbol}`;
+        document.getElementById('v3SwapMin').textContent=`${formatUnits(applySlip(out,slippage),ti.decimals,6)} ${ti.symbol}`;
+        btn.disabled=false;
+    }catch(e){console.warn('V3 quote:',e);clear();document.getElementById('v3SwapRate').textContent='报价失败';}
+}
+async function executeV3Swap(){
+    if(!tronWeb||!userAddress){showStatus('❌ 请先连接钱包','error');return;}
+    const fi=tokenCache.v3From,ti=tokenCache.v3To,amt=document.getElementById('v3FromAmount').value;
+    if(!fi||!ti||!amt||Number(amt)<=0||v3SwapQuoteRaw<=0n){showStatus('⚠️ 请先获得有效报价','warning');return;}
+    const amountIn=parseUnits(amt,fi.decimals); if(amountIn>BigInt(fi.balanceRaw||0)){showStatus('❌ 支付代币余额不足','error');return;}
+    const btn=document.getElementById('v3SwapBtn');btn.disabled=true;
+    try{
+        const tokenIn=v3TokenAddress(fi),tokenOut=v3TokenAddress(ti),outMin=applySlip(v3SwapQuoteRaw,slippage);
+        const beforeOutNative=isTrx(ti.address)?await v3WtrxBalance():0n;
+        await v3EnsureTokenReady(fi,CONFIG.V3_ROUTER,amountIn);
+        const router=await tronWeb.contract(V3_ROUTER_ABI,CONFIG.V3_ROUTER);
+        const params=[tokenIn,tokenOut,v3SwapFee,userAddress,v3Deadline(),amountIn.toString(),outMin.toString(),'0'];
+        showStatus('⚡ 正在提交 SunSwap V3 兑换...','info');
+        const txid=await router.exactInputSingle(params).send({feeLimit:CONFIG.FEE_LIMIT,callValue:0});
+        const ok=await checkTxResult(txid,14,2500);
+        if(ok===false)throw new Error('V3 兑换链上执行失败');
+        let unwrapTx=null;
+        if(isTrx(ti.address)){
+            const after=await v3WtrxBalance(); const diff=after-beforeOutNative;
+            if(diff>0n)unwrapTx=await v3UnwrapWtrx(diff);
+        }
+        const details=`${amt} ${fi.symbol} → ${document.getElementById('v3ToAmount').value} ${ti.symbol}`;
+        addTx('Swap',details,'V3',txid,ok===true?'success':'pending');
+        showStatus(`✅ V3 兑换完成！ <a href="${CONFIG.EXPLORER}/#/transaction/${txid}" target="_blank" style="color:var(--success)">查看交易</a>${unwrapTx?'（已自动解包 TRX）':''}`,'success',18000);
+        queryV3Field('v3FromAddress','v3From','v3From');queryV3Field('v3ToAddress','v3To','v3To');
+    }catch(e){console.error(e);showStatus('❌ '+(e.message||e),'error',15000);}finally{btn.disabled=false;}
+}
+
+async function checkV3MintPool(){
+    const a=tokenCache.v3MintA,b=tokenCache.v3MintB;
+    if(!a||!b){showStatus('⚠️ 请先查询 Token A/B','warning');return null;}
+    try{
+        const order=v3SortTokens(a,b),spacing=await v3GetTickSpacing(v3MintFee);
+        if(!spacing)throw new Error('该 Fee Tier 未启用');
+        const pool=await v3GetPool(order.token0,order.token1,v3MintFee);
+        const state={...order,fee:v3MintFee,tickSpacing:spacing,pool:null,exists:false,initialized:false,currentPriceAperB:null};
+        if(!v3IsZeroAddress(pool)){
+            const p=await v3ReadPool(pool);state.pool=pool;state.exists=true;state.initialized=p.sqrtPriceX96>0n;state.poolData=p;
+            if(state.initialized){
+                const p01=v3PriceFromSqrt(p.sqrtPriceX96,order.info0.decimals,order.info1.decimals);
+                state.currentPriceAtoB=order.aIs0?p01:1/p01;
+            }
+        }
+        v3MintPoolState=state;
+        document.getElementById('v3MintPoolAddress').textContent=state.pool||'尚未创建';
+        document.getElementById('v3MintPoolStatus').textContent=state.initialized?'已存在并初始化':(state.exists?'已创建但未初始化':'新 Pool');
+        document.getElementById('v3MintPoolStatus').style.color=state.initialized?'var(--success)':'var(--accent)';
+        document.getElementById('v3MintCurrentPrice').textContent=state.currentPriceAtoB?`1 ${a.symbol} = ${state.currentPriceAtoB.toPrecision(8)} ${b.symbol}`:'首次创建时由你设定';
+        document.getElementById('v3MintTickSpacing').textContent=spacing;
+        document.getElementById('v3MintTokenOrder').textContent=`${v3DisplaySymbol(order.token0,order.info0)} / ${v3DisplaySymbol(order.token1,order.info1)}`;
+        document.getElementById('v3InitialPriceGroup').style.display=state.initialized?'none':'block';
+        if(state.currentPriceAtoB){
+            const lo=document.getElementById('v3PriceLower'),hi=document.getElementById('v3PriceUpper');
+            if(!lo.value)lo.value=(state.currentPriceAtoB*0.8).toPrecision(8);
+            if(!hi.value)hi.value=(state.currentPriceAtoB*1.2).toPrecision(8);
+        }
+        updateV3MintTicks(); return state;
+    }catch(e){v3MintPoolState=null;showStatus('❌ '+e.message,'error');return null;}
+}
+function updateV3MintTicks(){
+    if(!v3MintPoolState)return;
+    try{
+        const s=v3MintPoolState,lo=Number(document.getElementById('v3PriceLower').value),hi=Number(document.getElementById('v3PriceUpper').value);
+        if(!(lo>0&&hi>lo)){document.getElementById('v3MintTicks').textContent='请输入有效区间';return;}
+        let rawLo=lo,rawHi=hi;
+        if(!s.aIs0){rawLo=1/hi;rawHi=1/lo;}
+        const tLo=v3ClampTick(v3FloorTick(v3TickFromHumanPrice(rawLo,s.info0.decimals,s.info1.decimals),s.tickSpacing));
+        const tHi=v3ClampTick(v3CeilTick(v3TickFromHumanPrice(rawHi,s.info0.decimals,s.info1.decimals),s.tickSpacing));
+        document.getElementById('v3MintTicks').textContent=`${tLo} / ${tHi}`;
+    }catch(e){document.getElementById('v3MintTicks').textContent='-';}
+}
+async function executeV3Mint(){
+    if(!tronWeb||!userAddress){showStatus('❌ 请先连接钱包','error');return;}
+    const a=tokenCache.v3MintA,b=tokenCache.v3MintB;
+    if(!a||!b){showStatus('⚠️ 请先查询 Token A/B','warning');return;}
+    let state=v3MintPoolState;if(!state||state.fee!==v3MintFee)state=await checkV3MintPool();if(!state)return;
+    const aa=document.getElementById('v3MintAAmount').value,bb=document.getElementById('v3MintBAmount').value;
+    if((!aa||Number(aa)<=0)&&(!bb||Number(bb)<=0)){showStatus('⚠️ 至少输入一种代币数量','warning');return;}
+    const btn=document.getElementById('v3MintBtn');btn.disabled=true;
+    try{
+        let amountA=aa?parseUnits(aa,a.decimals):0n,amountB=bb?parseUnits(bb,b.decimals):0n;
+        if(amountA>BigInt(a.balanceRaw||0)||amountB>BigInt(b.balanceRaw||0))throw new Error('代币余额不足');
+        let initHuman=state.currentPriceAtoB;
+        if(!state.initialized){initHuman=Number(document.getElementById('v3InitialPrice').value);if(!initHuman||initHuman<=0)throw new Error('新 Pool 必须填写初始价格');}
+        const lo=Number(document.getElementById('v3PriceLower').value),hi=Number(document.getElementById('v3PriceUpper').value);
+        if(!(lo>0&&hi>lo))throw new Error('价格区间无效');
+        let rawLo=lo,rawHi=hi,rawInit=initHuman;
+        if(!state.aIs0){rawLo=1/hi;rawHi=1/lo;rawInit=1/initHuman;}
+        const tickLower=v3ClampTick(v3FloorTick(v3TickFromHumanPrice(rawLo,state.info0.decimals,state.info1.decimals),state.tickSpacing));
+        const tickUpper=v3ClampTick(v3CeilTick(v3TickFromHumanPrice(rawHi,state.info0.decimals,state.info1.decimals),state.tickSpacing));
+        if(tickLower>=tickUpper)throw new Error('Tick 区间无效');
+        const amount0=state.aIs0?amountA:amountB,amount1=state.aIs0?amountB:amountA;
+        await v3EnsureTokenReady(state.info0,CONFIG.V3_POSITION_MANAGER,amount0);
+        await v3EnsureTokenReady(state.info1,CONFIG.V3_POSITION_MANAGER,amount1);
+        const pm=await tronWeb.contract(V3_POSITION_MANAGER_ABI,CONFIG.V3_POSITION_MANAGER);
+        if(!state.initialized){
+            const sqrt=v3EncodeSqrtPriceX96(rawInit,state.info0.decimals,state.info1.decimals);
+            showStatus('🌱 正在创建/初始化 V3 Pool...','info');
+            const initTx=await pm.createAndInitializePoolIfNecessary(state.token0,state.token1,state.fee,sqrt.toString()).send({feeLimit:CONFIG.FEE_LIMIT,callValue:0});
+            const initOk=await checkTxResult(initTx,14,2500);if(initOk===false)throw new Error('Pool 初始化失败');
+        }
+        const beforeCount=v3Big(await pm.balanceOf(userAddress).call());
+        const params=[state.token0,state.token1,state.fee,tickLower,tickUpper,amount0.toString(),amount1.toString(),'0','0',userAddress,v3Deadline()];
+        showStatus('🧭 正在 Mint V3 Position NFT...','info');
+        const txid=await pm.mint(params).send({feeLimit:CONFIG.FEE_LIMIT,callValue:0});
+        const ok=await checkTxResult(txid,14,2500);if(ok===false)throw new Error('Mint 仓位失败');
+        await sleep(1200);const afterCount=v3Big(await pm.balanceOf(userAddress).call());let tokenId='';
+        if(afterCount>beforeCount){tokenId=String(await pm.tokenOfOwnerByIndex(userAddress,(afterCount-1n).toString()).call());}
+        addTx('Mint Position',`${a.symbol}/${b.symbol} ${v3FeeText(state.fee)}${tokenId?' · #'+tokenId:''}`,'V3',txid,ok===true?'success':'pending');
+        showStatus(`✅ V3 仓位创建成功${tokenId?'，Token ID：'+tokenId:''}！ <a href="${CONFIG.EXPLORER}/#/transaction/${txid}" target="_blank" style="color:var(--success)">查看交易</a>`,'success',18000);
+        if(tokenId){document.getElementById('v3ManageTokenId').value=tokenId;document.getElementById('v3IncreaseTokenId').value=tokenId;}
+        loadV3Positions();
+    }catch(e){console.error(e);showStatus('❌ '+(e.message||e),'error',16000);}finally{btn.disabled=false;}
+}
+
+async function v3ReadPosition(tokenId){
+    if(!/^\d+$/.test(String(tokenId||'')))throw new Error('Token ID 无效');
+    const pm=await tronWeb.contract(V3_POSITION_MANAGER_ABI,CONFIG.V3_POSITION_MANAGER);
+    const owner=v3ToBase58(await pm.ownerOf(String(tokenId)).call());
+    if(v3HexSortKey(owner)!==v3HexSortKey(userAddress))throw new Error('该 NFT 不属于当前钱包');
+    const r=await pm.positions(String(tokenId)).call();
+    const p={tokenId:String(tokenId),owner,
+        token0:v3ToBase58(v3Result(r,'token0',2)),token1:v3ToBase58(v3Result(r,'token1',3)),fee:v3Num(v3Result(r,'fee',4)),
+        tickLower:v3Num(v3Result(r,'tickLower',5)),tickUpper:v3Num(v3Result(r,'tickUpper',6)),liquidity:v3Big(v3Result(r,'liquidity',7)),
+        tokensOwed0:v3Big(v3Result(r,'tokensOwed0',10)),tokensOwed1:v3Big(v3Result(r,'tokensOwed1',11))};
+    p.info0=await v3TokenInfoByAddress(p.token0,'v3Pos0_'+tokenId);p.info1=await v3TokenInfoByAddress(p.token1,'v3Pos1_'+tokenId);
+    p.pool=await v3GetPool(p.token0,p.token1,p.fee);
+    if(!v3IsZeroAddress(p.pool)){try{p.poolData=await v3ReadPool(p.pool);}catch(e){}}
+    return p;
+}
+function v3PositionLabel(p){return `${v3DisplaySymbol(p.token0,p.info0)} / ${v3DisplaySymbol(p.token1,p.info1)}`;}
+function v3PositionRangeText(p){
+    const lo=v3PriceFromTick(p.tickLower,p.info0.decimals,p.info1.decimals),hi=v3PriceFromTick(p.tickUpper,p.info0.decimals,p.info1.decimals);
+    return `${v3FeeText(p.fee)} · ${lo.toPrecision(5)} – ${hi.toPrecision(5)} ${p.info1.symbol}/${p.info0.symbol}`;
+}
+function v3PositionInRange(p){return p.poolData&&p.poolData.tick>=p.tickLower&&p.poolData.tick<p.tickUpper;}
+async function queryV3IncreasePosition(){
+    try{const p=await v3ReadPosition(document.getElementById('v3IncreaseTokenId').value.trim());v3IncreasePosition=p;
+        document.getElementById('v3IncreasePair').textContent=v3PositionLabel(p);document.getElementById('v3IncreaseRange').textContent=v3PositionRangeText(p);document.getElementById('v3IncreaseLiquidity').textContent=p.liquidity.toString();
+        document.getElementById('v3IncreaseSymbol0').textContent=v3DisplaySymbol(p.token0,p.info0);document.getElementById('v3IncreaseSymbol1').textContent=v3DisplaySymbol(p.token1,p.info1);
+        showStatus('✅ 仓位已加载','success',2500);return p;}catch(e){v3IncreasePosition=null;showStatus('❌ '+e.message,'error');return null;}
+}
+async function executeV3Increase(){
+    let p=v3IncreasePosition;if(!p||p.tokenId!==document.getElementById('v3IncreaseTokenId').value.trim())p=await queryV3IncreasePosition();if(!p)return;
+    const s0=document.getElementById('v3IncreaseAmount0').value,s1=document.getElementById('v3IncreaseAmount1').value;
+    const a0=s0?parseUnits(s0,p.info0.decimals):0n,a1=s1?parseUnits(s1,p.info1.decimals):0n;if(a0<=0n&&a1<=0n){showStatus('⚠️ 请输入增加数量','warning');return;}
+    const btn=document.getElementById('v3IncreaseBtn');btn.disabled=true;
+    try{
+        await v3EnsureTokenReady(p.info0,CONFIG.V3_POSITION_MANAGER,a0);await v3EnsureTokenReady(p.info1,CONFIG.V3_POSITION_MANAGER,a1);
+        const pm=await tronWeb.contract(V3_POSITION_MANAGER_ABI,CONFIG.V3_POSITION_MANAGER);
+        const params=[p.tokenId,a0.toString(),a1.toString(),'0','0',v3Deadline()];
+        showStatus('➕ 正在增加 V3 流动性...','info');const txid=await pm.increaseLiquidity(params).send({feeLimit:CONFIG.FEE_LIMIT,callValue:0});
+        const ok=await checkTxResult(txid,14,2500);if(ok===false)throw new Error('增加流动性失败');
+        addTx('Increase Position',`#${p.tokenId} · ${v3PositionLabel(p)}`,'V3',txid,ok===true?'success':'pending');showStatus(`✅ 增加成功！ <a href="${CONFIG.EXPLORER}/#/transaction/${txid}" target="_blank" style="color:var(--success)">查看</a>`,'success',15000);queryV3IncreasePosition();loadV3Positions();
+    }catch(e){showStatus('❌ '+(e.message||e),'error');}finally{btn.disabled=false;}
+}
+async function queryV3ManagePosition(){
+    try{const p=await v3ReadPosition(document.getElementById('v3ManageTokenId').value.trim());v3ManagePosition=p;
+        document.getElementById('v3ManagePair').textContent=v3PositionLabel(p);document.getElementById('v3ManageRange').textContent=v3PositionRangeText(p);document.getElementById('v3ManageLiquidity').textContent=p.liquidity.toString();
+        document.getElementById('v3ManageOwed').textContent=`${formatUnits(p.tokensOwed0,p.info0.decimals,6)} ${v3DisplaySymbol(p.token0,p.info0)} / ${formatUnits(p.tokensOwed1,p.info1.decimals,6)} ${v3DisplaySymbol(p.token1,p.info1)}`;
+        updateV3RemovePreview();return p;}catch(e){v3ManagePosition=null;showStatus('❌ '+e.message,'error');return null;}
+}
+function setV3RemovePct(v){document.getElementById('v3RemoveSlider').value=v;updateV3RemovePreview();}
+function updateV3RemovePreview(){
+    const pct=Number(document.getElementById('v3RemoveSlider').value||50);document.getElementById('v3RemovePercent').textContent=pct+'%';
+    document.getElementById('v3LiquidityToRemove').textContent=v3ManagePosition?((v3ManagePosition.liquidity*BigInt(pct))/100n).toString():'-';
+}
+async function v3AutoUnwrapCollected(before,p){
+    if(p.token0!==CONFIG.V3_WTRX&&p.token1!==CONFIG.V3_WTRX)return null;
+    const after=await v3WtrxBalance(),diff=after-before;if(diff>0n)return v3UnwrapWtrx(diff);return null;
+}
+async function collectV3Position(showFinal=true){
+    let p=v3ManagePosition;if(!p||p.tokenId!==document.getElementById('v3ManageTokenId').value.trim())p=await queryV3ManagePosition();if(!p)return null;
+    const before=(p.token0===CONFIG.V3_WTRX||p.token1===CONFIG.V3_WTRX)?await v3WtrxBalance():0n;
+    const pm=await tronWeb.contract(V3_POSITION_MANAGER_ABI,CONFIG.V3_POSITION_MANAGER);
+    showStatus('💰 正在领取 V3 资产与手续费...','info');
+    const txid=await pm.collect([p.tokenId,userAddress,V3_MAX_UINT128.toString(),V3_MAX_UINT128.toString()]).send({feeLimit:CONFIG.FEE_LIMIT,callValue:0});
+    const ok=await checkTxResult(txid,14,2500);if(ok===false)throw new Error('领取失败');
+    await v3AutoUnwrapCollected(before,p);addTx('Collect',`#${p.tokenId} · ${v3PositionLabel(p)}`,'V3',txid,ok===true?'success':'pending');
+    if(showFinal)showStatus(`✅ 领取完成！ <a href="${CONFIG.EXPLORER}/#/transaction/${txid}" target="_blank" style="color:var(--success)">查看</a>`,'success',15000);
+    await queryV3ManagePosition();loadV3Positions();return txid;
+}
+async function executeV3Collect(){const b=document.getElementById('v3CollectBtn');b.disabled=true;try{await collectV3Position(true);}catch(e){showStatus('❌ '+(e.message||e),'error');}finally{b.disabled=false;}}
+async function executeV3Remove(){
+    let p=v3ManagePosition;if(!p||p.tokenId!==document.getElementById('v3ManageTokenId').value.trim())p=await queryV3ManagePosition();if(!p)return;
+    const pct=Number(document.getElementById('v3RemoveSlider').value),liq=(p.liquidity*BigInt(pct))/100n;if(liq<=0n){showStatus('⚠️ 可移除 Liquidity 为 0','warning');return;}
+    const btn=document.getElementById('v3RemoveBtn');btn.disabled=true;
+    try{
+        const pm=await tronWeb.contract(V3_POSITION_MANAGER_ABI,CONFIG.V3_POSITION_MANAGER);
+        showStatus('🔥 正在减少 V3 Liquidity...','info');
+        const txid=await pm.decreaseLiquidity([p.tokenId,liq.toString(),'0','0',v3Deadline()]).send({feeLimit:CONFIG.FEE_LIMIT,callValue:0});
+        const ok=await checkTxResult(txid,14,2500);if(ok===false)throw new Error('减少流动性失败');
+        addTx('Decrease Position',`#${p.tokenId} · ${pct}%`,'V3',txid,ok===true?'success':'pending');
+        await queryV3ManagePosition();await collectV3Position(false);
+        if(document.getElementById('v3BurnAfterRemove').checked&&pct===100){
+            const refreshed=await v3ReadPosition(p.tokenId);
+            if(refreshed.liquidity===0n&&refreshed.tokensOwed0===0n&&refreshed.tokensOwed1===0n){
+                showStatus('🗑️ 正在销毁空 Position NFT...','info');const burnTx=await pm.burn(p.tokenId).send({feeLimit:CONFIG.FEE_LIMIT,callValue:0});await checkTxResult(burnTx,12,2500);
+            }
+        }
+        showStatus(`✅ 已移除 ${pct}% 流动性并领取资产！ <a href="${CONFIG.EXPLORER}/#/transaction/${txid}" target="_blank" style="color:var(--success)">查看减少交易</a>`,'success',18000);loadV3Positions();
+    }catch(e){console.error(e);showStatus('❌ '+(e.message||e),'error',16000);}finally{btn.disabled=false;}
+}
+function useV3Position(tokenId,target){
+    if(target==='increase'){
+        document.querySelector('[data-v3tab="v3Increase"]').click();document.getElementById('v3IncreaseTokenId').value=tokenId;queryV3IncreasePosition();
+    }else{
+        document.querySelector('[data-v3tab="v3Manage"]').click();document.getElementById('v3ManageTokenId').value=tokenId;queryV3ManagePosition();
+    }
+}
+async function loadV3Positions(){
+    if(!tronWeb||!userAddress){showStatus('⚠️ 请先连接钱包','warning');return;}
+    const list=document.getElementById('v3PositionsList');list.innerHTML='<div style="text-align:center;padding:18px;color:var(--secondary)"><span class="spinner"></span>加载中...</div>';
+    try{
+        const pm=await tronWeb.contract(V3_POSITION_MANAGER_ABI,CONFIG.V3_POSITION_MANAGER);const total=v3Big(await pm.balanceOf(userAddress).call());
+        if(total===0n){list.innerHTML='<div data-v3-empty="1" style="text-align:center;padding:20px;color:var(--text-secondary)">当前钱包暂无 V3 Position NFT</div>';return;}
+        const max=total>30n?30n:total,positions=[];
+        for(let i=0n;i<max;i++){try{const id=String(await pm.tokenOfOwnerByIndex(userAddress,i.toString()).call());positions.push(await v3ReadPosition(id));}catch(e){console.warn('position index',i,e);}}
+        list.innerHTML='';positions.reverse().forEach(p=>{
+            const inRange=v3PositionInRange(p),d=document.createElement('div');d.className='v3-position-card';
+            d.innerHTML=`<div class="v3-position-head"><span class="v3-position-title">#${p.tokenId} · ${v3PositionLabel(p)}</span><span class="v3-position-state ${inRange?'in':'out'}">${inRange?'区间内':'区间外'}</span></div>
+            <div class="info-row"><span class="info-label">Fee / Range</span><span class="info-value">${v3PositionRangeText(p)}</span></div>
+            <div class="info-row"><span class="info-label">Liquidity</span><span class="info-value">${p.liquidity}</span></div>
+            <div class="v3-card-actions"><button class="v3-mini-btn" onclick="useV3Position('${p.tokenId}','increase')">➕ 增加</button><button class="v3-mini-btn" onclick="useV3Position('${p.tokenId}','manage')">🧾 管理</button></div>`;list.appendChild(d);
+        });
+        if(total>30n){const n=document.createElement('div');n.className='v3-note';n.textContent=`共有 ${total} 个仓位，本页仅加载前 30 个。`;list.appendChild(n);}
+    }catch(e){list.innerHTML='<div class="status-message status-error">加载失败：'+e.message+'</div>';}
+}
+
+function setupV3(){
+    document.querySelectorAll('.protocol-btn').forEach(b=>b.addEventListener('click',()=>{
+        document.querySelectorAll('.protocol-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');
+        const isV3=b.dataset.protocol==='v3';document.getElementById('v2ProtocolPanel').style.display=isV3?'none':'block';document.getElementById('v3ProtocolPanel').style.display=isV3?'block':'none';
+    }));
+    document.querySelectorAll('.tab[data-v3tab]').forEach(t=>t.addEventListener('click',()=>{
+        document.querySelectorAll('.tab[data-v3tab]').forEach(x=>x.classList.remove('active'));t.classList.add('active');
+        ['v3Swap','v3Mint','v3Increase','v3Manage'].forEach(n=>document.getElementById(n+'Panel').style.display=t.dataset.v3tab===n?'block':'none');
+        if(t.dataset.v3tab==='v3Manage'&&userAddress)loadV3Positions();
+    }));
+    document.querySelectorAll('.fee-tier-grid').forEach(group=>group.querySelectorAll('.fee-tier-btn').forEach(b=>b.addEventListener('click',()=>{
+        group.querySelectorAll('.fee-tier-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');
+        if(group.dataset.feeGroup==='swap'){v3SwapFee=Number(b.dataset.fee);updateV3SwapQuote();}else{v3MintFee=Number(b.dataset.fee);v3MintPoolState=null;checkV3MintPool();}
+    })));
+    document.getElementById('v3QueryFrom').addEventListener('click',()=>queryV3Field('v3FromAddress','v3From','v3From',updateV3SwapQuote));
+    document.getElementById('v3QueryTo').addEventListener('click',()=>queryV3Field('v3ToAddress','v3To','v3To',updateV3SwapQuote));
+    document.getElementById('v3QueryMintA').addEventListener('click',()=>queryV3Field('v3MintAAddress','v3MintA','v3MintA',async()=>{v3MintPoolState=null;}));
+    document.getElementById('v3QueryMintB').addEventListener('click',()=>queryV3Field('v3MintBAddress','v3MintB','v3MintB',async()=>{v3MintPoolState=null;}));
+    document.getElementById('v3SwapDirection').addEventListener('click',()=>{
+        const a=document.getElementById('v3FromAddress'),b=document.getElementById('v3ToAddress'),v=a.value;a.value=b.value;b.value=v;
+        const t=tokenCache.v3From;tokenCache.v3From=tokenCache.v3To;tokenCache.v3To=t;if(tokenCache.v3From)v3SetDisplay('v3From',tokenCache.v3From);if(tokenCache.v3To)v3SetDisplay('v3To',tokenCache.v3To);updateV3SwapQuote();
+    });
+    document.getElementById('v3MaxBtn').addEventListener('click',()=>{const i=tokenCache.v3From;if(i){let m=i.balance;if(isTrx(i.address))m=Math.max(0,m-15);document.getElementById('v3FromAmount').value=m;updateV3SwapQuote();}});
+    const deb=(fn,ms)=>{let t;return()=>{clearTimeout(t);t=setTimeout(fn,ms);};};
+    document.getElementById('v3FromAmount').addEventListener('input',deb(updateV3SwapQuote,550));
+    document.getElementById('v3PriceLower').addEventListener('input',deb(updateV3MintTicks,250));document.getElementById('v3PriceUpper').addEventListener('input',deb(updateV3MintTicks,250));
+    document.getElementById('v3SwapBtn').addEventListener('click',executeV3Swap);document.getElementById('v3CheckMintPool').addEventListener('click',checkV3MintPool);document.getElementById('v3MintBtn').addEventListener('click',executeV3Mint);
+    document.getElementById('v3QueryIncreasePosition').addEventListener('click',queryV3IncreasePosition);document.getElementById('v3IncreaseBtn').addEventListener('click',executeV3Increase);
+    document.getElementById('v3LoadPositions').addEventListener('click',loadV3Positions);document.getElementById('v3QueryManagePosition').addEventListener('click',queryV3ManagePosition);
+    document.getElementById('v3RemoveSlider').addEventListener('input',updateV3RemovePreview);document.getElementById('v3CollectBtn').addEventListener('click',executeV3Collect);document.getElementById('v3RemoveBtn').addEventListener('click',executeV3Remove);
+}
+
 /* ================================================================
    Transaction receipt checker
    ================================================================ */
@@ -1399,6 +2168,7 @@ function showStatus(msg, type='info', dur=5000){
    ================================================================ */
 function setup(){
     document.getElementById('connectWallet').addEventListener('click',connectWallet);
+    setupV3();
 
     // Tab switch
     document.querySelectorAll('.tab[data-tab]').forEach(t=>t.addEventListener('click',()=>{
@@ -1420,14 +2190,14 @@ function setup(){
         document.querySelectorAll('.slippage-btn').forEach(x=>x.classList.remove('active'));
         b.classList.add('active'); slippage=parseFloat(b.dataset.slippage);
         document.getElementById('customSlippage').value='';
-        updateQuote(); updateRemovePreview();
+        updateQuote(); updateRemovePreview(); updateV3SwapQuote();
     }));
     document.getElementById('customSlippage').addEventListener('input',function(){
         const v=parseFloat(this.value);
         if(v>0&&v<=50){
             slippage=v;
             document.querySelectorAll('.slippage-btn').forEach(x=>x.classList.remove('active'));
-            updateQuote(); updateRemovePreview();
+            updateQuote(); updateRemovePreview(); updateV3SwapQuote();
         }
     });
 
@@ -1490,7 +2260,7 @@ async function init(){
             btn.textContent='🟢 '+userAddress.slice(0,6)+'...'+userAddress.slice(-4);
             btn.style.background='linear-gradient(135deg,#00ff88,#00cc66)';
             showStatus('✅ 已自动连接','success',3000);
-            setTimeout(()=>{queryFromToken();queryToToken();},800);
+            setTimeout(()=>{queryFromToken();queryToToken();queryV3Field('v3FromAddress','v3From','v3From');queryV3Field('v3ToAddress','v3To','v3To');},800);
         }
     } else if(!window.tronLink){
         showStatus('⚠️ 请安装 TronLink 钱包扩展','warning',10000);
