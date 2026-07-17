@@ -6,7 +6,7 @@
     <meta name="author" content="PandaTool">
     <meta name="copyright" content="PandaTool https://pandatool.org">
     <!-- Built by PandaTool | https://pandatool.org | https://t.me/pandatool -->
-    <title>TRON DEX V2 + V3 - Nile Testnet | PandaTool</title>
+    <title>TRON DEX V2 + V3 - Nile Testnet | PandaTool V3 Fix 4</title>
     <script src="https://cdn.jsdelivr.net/npm/tronweb@5.3.0/dist/TronWeb.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
@@ -288,7 +288,7 @@
         <div class="brand-tag">Powered by <a href="https://pandatool.org/" target="_blank" rel="noopener" class="brand-link">🐼 PandaTool</a> &nbsp;|&nbsp; <a href="https://t.me/pandatool" target="_blank" rel="noopener" class="brand-link">✈️ Telegram</a></div>
         <div class="network-badge">
             <div class="network-dot"></div>
-            <span>Nile Testnet</span>
+            <span>Nile Testnet · V3 Fix 4</span>
         </div>
         <button class="wallet-btn" id="connectWallet">🔌 连接钱包</button>
     </header>
@@ -543,10 +543,13 @@
                     </div>
                     <div class="info-box">
                         <div class="info-row"><span class="info-label">🏊 Pool</span><span class="info-value v3-address" id="v3SwapPool">-</span></div>
+                        <div class="info-row"><span class="info-label">🟢 起点活跃流动性</span><span class="info-value" id="v3SwapLiquidity">-</span></div>
+                        <div class="info-row"><span class="info-label">📍 当前 Tick</span><span class="info-value" id="v3SwapTick">-</span></div>
+                        <div class="info-row"><span class="info-label">🧭 报价路径</span><span class="info-value" id="v3SwapPathState">-</span></div>
                         <div class="info-row"><span class="info-label">📊 兑换率</span><span class="info-value" id="v3SwapRate">-</span></div>
                         <div class="info-row"><span class="info-label">📦 最少收到</span><span class="info-value" id="v3SwapMin">-</span></div>
                     </div>
-                    <div class="v3-note">TRX 会先通过官方 Nile WTRX 合约封装；接收 TRX 时会在兑换确认后自动解包，因此可能出现两次钱包确认。</div>
+                    <div class="v3-note">支持 V3 单边区间仓位：即使当前 Tick 的起点流动性为 0，也会继续调用 Quoter，尝试沿交易方向跨越空白 Tick 到达下一个已初始化仓位。TRX 会先封装为官方 Nile WTRX。</div>
                     <button class="action-btn" id="v3SwapBtn" disabled>⚡ 执行 V3 兑换</button>
                 </div>
 
@@ -713,9 +716,13 @@
 </footer>
 
 <script>
+console.info('[PandaTool] TRON Nile DEX V3 Fix 4 · 2026-07-17 · range-order / zero-start-liquidity quoting');
 /* ================================================================
    CONFIG
    ================================================================ */
+const PANDA_DEX_BUILD = 'V3_FIX_4_RANGE_ORDER_20260717';
+window.PANDA_DEX_BUILD = PANDA_DEX_BUILD;
+
 const CONFIG = {
     V2_ROUTER:  'TMn1qrmYUMSTXo9babrJLzepKZoPC7M6Sy',
     V2_FACTORY: 'THomLGMLhAjMecQf9FQjbZ8a1RtwsZLrGE',
@@ -1906,6 +1913,8 @@ async function v3QuoteExactInputSingle(tokenIn,tokenOut,fee,amountIn){
         {type:'uint160',value:'0'}
     ];
 
+    // 直接走 constant contract RPC。这里绝不使用 ContractMethod.call()，
+    // 因为 SunSwap V3 Quoter 的 ABI 是 nonpayable，TronWeb 会拒绝 .call()。
     const result=await tb.triggerConstantContract(
         CONFIG.V3_QUOTER,
         'quoteExactInputSingle(address,address,uint24,uint256,uint160)',
@@ -1914,13 +1923,13 @@ async function v3QuoteExactInputSingle(tokenIn,tokenOut,fee,amountIn){
         userAddress
     );
 
-    const ok=result && result.result && result.result.result!==false;
     const values=result && (result.constant_result || result.constantResult);
-    if(!ok || !values || !values.length){
+    const nodeFailed=result && result.result && result.result.result===false;
+    if(nodeFailed || !values || !values.length){
         const reason=v3DecodeNodeMessage(
             result?.result?.message || result?.result?.resMessage || result?.message || result?.resMessage
         );
-        throw new Error(reason || 'Quoter 模拟调用未返回 constant_result');
+        throw new Error(reason || 'Quoter 模拟调用失败：Pool 可能没有当前价格范围内的活跃流动性');
     }
 
     const hex=String(values[0]||'').replace(/^0x/i,'');
@@ -1928,35 +1937,106 @@ async function v3QuoteExactInputSingle(tokenIn,tokenOut,fee,amountIn){
     return BigInt('0x'+hex);
 }
 
+function v3SpotRateForDirection(poolState, tokenIn, tokenOut, fi, ti){
+    if(!poolState || poolState.sqrtPriceX96<=0n) return null;
+    const p01=v3PriceFromSqrt(poolState.sqrtPriceX96, fi.decimals, ti.decimals);
+    const inKey=v3HexSortKey(tokenIn), outKey=v3HexSortKey(tokenOut);
+    const t0Key=v3HexSortKey(poolState.token0), t1Key=v3HexSortKey(poolState.token1);
+
+    // v3PriceFromSqrt 的 decimals 必须对应 token0/token1，而不是输入方向。
+    let dec0,dec1;
+    if(t0Key===inKey){ dec0=fi.decimals; dec1=ti.decimals; }
+    else { dec0=ti.decimals; dec1=fi.decimals; }
+    const token1PerToken0=v3PriceFromSqrt(poolState.sqrtPriceX96,dec0,dec1);
+    if(!isFinite(token1PerToken0)||token1PerToken0<=0) return null;
+    if(inKey===t0Key && outKey===t1Key) return token1PerToken0;
+    if(inKey===t1Key && outKey===t0Key) return 1/token1PerToken0;
+    return null;
+}
+
 async function updateV3SwapQuote(){
     const btn=document.getElementById('v3SwapBtn');
-    const clear=()=>{v3SwapQuoteRaw=0n;document.getElementById('v3ToAmount').value='';document.getElementById('v3SwapPool').textContent='-';document.getElementById('v3SwapRate').textContent='-';document.getElementById('v3SwapMin').textContent='-';btn.disabled=true;};
+    const poolEl=document.getElementById('v3SwapPool');
+    const liqEl=document.getElementById('v3SwapLiquidity');
+    const tickEl=document.getElementById('v3SwapTick');
+    const rateEl=document.getElementById('v3SwapRate');
+    const minEl=document.getElementById('v3SwapMin');
+    const pathEl=document.getElementById('v3SwapPathState');
+    const clear=()=>{
+        v3SwapQuoteRaw=0n;
+        document.getElementById('v3ToAmount').value='';
+        poolEl.textContent='-'; liqEl.textContent='-'; tickEl.textContent='-'; pathEl.textContent='-';
+        rateEl.textContent='-'; minEl.textContent='-'; btn.disabled=true;
+    };
     if(!tronWeb||!userAddress){clear();return;}
     const fi=tokenCache.v3From,ti=tokenCache.v3To,amt=document.getElementById('v3FromAmount').value;
     if(!fi||!ti||!amt||Number(amt)<=0){clear();return;}
+
     try{
         const input=v3TokenAddress(fi),output=v3TokenAddress(ti);
         if(v3HexSortKey(input)===v3HexSortKey(output))throw new Error('请选择不同代币');
         const pool=await v3GetPool(input,output,v3SwapFee);
-        if(v3IsZeroAddress(pool)){clear();document.getElementById('v3SwapPool').textContent='该 Fee Tier 无 Pool';return;}
-        document.getElementById('v3SwapPool').textContent=pool;
+        if(v3IsZeroAddress(pool)){
+            clear(); poolEl.textContent='该 Fee Tier 无 Pool';
+            rateEl.textContent='未创建交易池';
+            return;
+        }
+        poolEl.textContent=pool;
+
+        const poolState=await v3ReadPool(pool);
+        liqEl.textContent=poolState.liquidity.toString();
+        tickEl.textContent=String(poolState.tick);
+        const spot=v3SpotRateForDirection(poolState,input,output,fi,ti);
+        if(spot){ rateEl.textContent=`池内现价：1 ${fi.symbol} ≈ ${spot.toPrecision(8)} ${ti.symbol}`; }
+
+        // 重要：起点 liquidity() 为 0 不能直接判定不可成交。
+        // V3 swap 可以沿交易方向越过没有活跃流动性的 Tick，抵达下一个 initialized tick，
+        // 再激活单边区间仓位（range order）。能否成交由 Quoter 的完整 swap 模拟决定。
+        const startsWithZeroLiquidity=poolState.liquidity<=0n;
+        if(startsWithZeroLiquidity){
+            liqEl.textContent='0（允许跨 Tick 寻找仓位）';
+            liqEl.style.color='var(--accent)';
+            pathEl.textContent='正在沿交易方向查找下一个已初始化 Tick…';
+            pathEl.style.color='var(--accent)';
+        }else{
+            liqEl.style.color='var(--success)';
+            pathEl.textContent='从当前活跃区间直接报价';
+            pathEl.style.color='var(--success)';
+        }
+
         const amountIn=parseUnits(amt,fi.decimals);
         const out=await v3QuoteExactInputSingle(input,output,v3SwapFee,amountIn);
         if(out<=0n)throw new Error('报价为 0');
         v3SwapQuoteRaw=out;
-        const disp=formatUnits(out,ti.decimals,6); document.getElementById('v3ToAmount').value=disp;
-        document.getElementById('v3SwapRate').textContent=`1 ${fi.symbol} ≈ ${(Number(disp)/Number(amt)).toFixed(6)} ${ti.symbol}`;
-        document.getElementById('v3SwapMin').textContent=`${formatUnits(applySlip(out,slippage),ti.decimals,6)} ${ti.symbol}`;
+        const disp=formatUnits(out,ti.decimals,6);
+        document.getElementById('v3ToAmount').value=disp;
+        rateEl.textContent=`1 ${fi.symbol} ≈ ${(Number(disp)/Number(amt)).toFixed(6)} ${ti.symbol}`;
+        minEl.textContent=`${formatUnits(applySlip(out,slippage),ti.decimals,6)} ${ti.symbol}`;
+        if(startsWithZeroLiquidity){
+            pathEl.textContent='报价成功：已跨越空白 Tick 并进入单边仓位';
+            pathEl.style.color='var(--success)';
+        }else{
+            pathEl.textContent='报价成功：当前活跃区间可直接成交';
+            pathEl.style.color='var(--success)';
+        }
         btn.disabled=false;
     }catch(e){
-        console.warn('V3 quote:',e);
+        console.warn('V3 quote fix4:',e);
         v3SwapQuoteRaw=0n;
         document.getElementById('v3ToAmount').value='';
-        document.getElementById('v3SwapRate').textContent='报价失败';
-        document.getElementById('v3SwapMin').textContent='-';
+        if(rateEl.textContent==='-'||rateEl.textContent==='') rateEl.textContent='报价失败';
+        minEl.textContent='-';
         btn.disabled=true;
         const msg=String(e?.message||e||'未知错误');
-        showStatus('❌ V3 报价失败：'+msg,'error',10000);
+        const stale=msg.includes('nonpayable')&&msg.includes('send');
+        const zeroStart=liqEl.textContent.startsWith('0');
+        if(pathEl){
+            pathEl.textContent=zeroStart
+                ? '该交易方向未获得可执行报价；可能没有可到达的初始化仓位，或输入量/价格边界不足'
+                : 'Quoter 模拟失败';
+            pathEl.style.color='var(--error)';
+        }
+        showStatus('❌ V3 报价失败：'+msg+(stale?'；当前页面仍在运行旧构建，V3 Fix 4 不会使用 Quoter.call()。':''),'error',15000);
     }
 }
 async function executeV3Swap(){
