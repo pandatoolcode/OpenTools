@@ -737,52 +737,52 @@ const CONFIG = {
    ABIs
    ================================================================ */
 const TRC20_ABI = [
-    {outputs:[{type:'uint256'}],constant:true,inputs:[{name:'who',type:'address'}],name:'balanceOf',stateMutability:'View',type:'Function'},
-    {outputs:[{type:'bool'}],inputs:[{name:'_spender',type:'address'},{name:'_value',type:'uint256'}],name:'approve',stateMutability:'Nonpayable',type:'Function'},
-    {outputs:[{type:'uint256'}],inputs:[{name:'_owner',type:'address'},{name:'_spender',type:'address'}],name:'allowance',stateMutability:'View',type:'Function'},
-    {outputs:[{type:'string'}],constant:true,inputs:[],name:'name',stateMutability:'View',type:'Function'},
-    {outputs:[{type:'string'}],constant:true,inputs:[],name:'symbol',stateMutability:'View',type:'Function'},
-    {outputs:[{type:'uint8'}],constant:true,inputs:[],name:'decimals',stateMutability:'View',type:'Function'}
+    {outputs:[{type:'uint256'}],constant:true,inputs:[{name:'who',type:'address'}],name:'balanceOf',stateMutability:'view',type:'function'},
+    {outputs:[{type:'bool'}],inputs:[{name:'_spender',type:'address'},{name:'_value',type:'uint256'}],name:'approve',stateMutability:'nonpayable',type:'function'},
+    {outputs:[{type:'uint256'}],inputs:[{name:'_owner',type:'address'},{name:'_spender',type:'address'}],name:'allowance',stateMutability:'view',type:'function'},
+    {outputs:[{type:'string'}],constant:true,inputs:[],name:'name',stateMutability:'view',type:'function'},
+    {outputs:[{type:'string'}],constant:true,inputs:[],name:'symbol',stateMutability:'view',type:'function'},
+    {outputs:[{type:'uint8'}],constant:true,inputs:[],name:'decimals',stateMutability:'view',type:'function'}
 ];
 
 const V2_ROUTER_ABI = [
-    {inputs:[],name:'WETH',outputs:[{name:'',type:'address'}],stateMutability:'pure',type:'Function'},
-    {inputs:[{name:'amountIn',type:'uint256'},{name:'path',type:'address[]'}],name:'getAmountsOut',outputs:[{name:'amounts',type:'uint256[]'}],stateMutability:'view',type:'Function'},
-    {inputs:[{name:'amountIn',type:'uint256'},{name:'amountOutMin',type:'uint256'},{name:'path',type:'address[]'},{name:'to',type:'address'},{name:'deadline',type:'uint256'}],name:'swapExactTokensForTokens',outputs:[{name:'amounts',type:'uint256[]'}],stateMutability:'nonpayable',type:'Function'},
-    {inputs:[{name:'amountOutMin',type:'uint256'},{name:'path',type:'address[]'},{name:'to',type:'address'},{name:'deadline',type:'uint256'}],name:'swapExactETHForTokens',outputs:[{name:'amounts',type:'uint256[]'}],stateMutability:'payable',type:'Function'},
-    {inputs:[{name:'amountIn',type:'uint256'},{name:'amountOutMin',type:'uint256'},{name:'path',type:'address[]'},{name:'to',type:'address'},{name:'deadline',type:'uint256'}],name:'swapExactTokensForETH',outputs:[{name:'amounts',type:'uint256[]'}],stateMutability:'nonpayable',type:'Function'},
-    {inputs:[{name:'tokenA',type:'address'},{name:'tokenB',type:'address'},{name:'amountADesired',type:'uint256'},{name:'amountBDesired',type:'uint256'},{name:'amountAMin',type:'uint256'},{name:'amountBMin',type:'uint256'},{name:'to',type:'address'},{name:'deadline',type:'uint256'}],name:'addLiquidity',outputs:[{name:'amountA',type:'uint256'},{name:'amountB',type:'uint256'},{name:'liquidity',type:'uint256'}],stateMutability:'nonpayable',type:'Function'},
-    {inputs:[{name:'token',type:'address'},{name:'amountTokenDesired',type:'uint256'},{name:'amountTokenMin',type:'uint256'},{name:'amountETHMin',type:'uint256'},{name:'to',type:'address'},{name:'deadline',type:'uint256'}],name:'addLiquidityETH',outputs:[{name:'amountToken',type:'uint256'},{name:'amountETH',type:'uint256'},{name:'liquidity',type:'uint256'}],stateMutability:'payable',type:'Function'},
-    {inputs:[{name:'tokenA',type:'address'},{name:'tokenB',type:'address'},{name:'liquidity',type:'uint256'},{name:'amountAMin',type:'uint256'},{name:'amountBMin',type:'uint256'},{name:'to',type:'address'},{name:'deadline',type:'uint256'}],name:'removeLiquidity',outputs:[{name:'amountA',type:'uint256'},{name:'amountB',type:'uint256'}],stateMutability:'nonpayable',type:'Function'},
-    {inputs:[{name:'token',type:'address'},{name:'liquidity',type:'uint256'},{name:'amountTokenMin',type:'uint256'},{name:'amountETHMin',type:'uint256'},{name:'to',type:'address'},{name:'deadline',type:'uint256'}],name:'removeLiquidityETH',outputs:[{name:'amountToken',type:'uint256'},{name:'amountETH',type:'uint256'}],stateMutability:'nonpayable',type:'Function'}
+    {inputs:[],name:'WETH',outputs:[{name:'',type:'address'}],stateMutability:'pure',type:'function'},
+    {inputs:[{name:'amountIn',type:'uint256'},{name:'path',type:'address[]'}],name:'getAmountsOut',outputs:[{name:'amounts',type:'uint256[]'}],stateMutability:'view',type:'function'},
+    {inputs:[{name:'amountIn',type:'uint256'},{name:'amountOutMin',type:'uint256'},{name:'path',type:'address[]'},{name:'to',type:'address'},{name:'deadline',type:'uint256'}],name:'swapExactTokensForTokens',outputs:[{name:'amounts',type:'uint256[]'}],stateMutability:'nonpayable',type:'function'},
+    {inputs:[{name:'amountOutMin',type:'uint256'},{name:'path',type:'address[]'},{name:'to',type:'address'},{name:'deadline',type:'uint256'}],name:'swapExactETHForTokens',outputs:[{name:'amounts',type:'uint256[]'}],stateMutability:'payable',type:'function'},
+    {inputs:[{name:'amountIn',type:'uint256'},{name:'amountOutMin',type:'uint256'},{name:'path',type:'address[]'},{name:'to',type:'address'},{name:'deadline',type:'uint256'}],name:'swapExactTokensForETH',outputs:[{name:'amounts',type:'uint256[]'}],stateMutability:'nonpayable',type:'function'},
+    {inputs:[{name:'tokenA',type:'address'},{name:'tokenB',type:'address'},{name:'amountADesired',type:'uint256'},{name:'amountBDesired',type:'uint256'},{name:'amountAMin',type:'uint256'},{name:'amountBMin',type:'uint256'},{name:'to',type:'address'},{name:'deadline',type:'uint256'}],name:'addLiquidity',outputs:[{name:'amountA',type:'uint256'},{name:'amountB',type:'uint256'},{name:'liquidity',type:'uint256'}],stateMutability:'nonpayable',type:'function'},
+    {inputs:[{name:'token',type:'address'},{name:'amountTokenDesired',type:'uint256'},{name:'amountTokenMin',type:'uint256'},{name:'amountETHMin',type:'uint256'},{name:'to',type:'address'},{name:'deadline',type:'uint256'}],name:'addLiquidityETH',outputs:[{name:'amountToken',type:'uint256'},{name:'amountETH',type:'uint256'},{name:'liquidity',type:'uint256'}],stateMutability:'payable',type:'function'},
+    {inputs:[{name:'tokenA',type:'address'},{name:'tokenB',type:'address'},{name:'liquidity',type:'uint256'},{name:'amountAMin',type:'uint256'},{name:'amountBMin',type:'uint256'},{name:'to',type:'address'},{name:'deadline',type:'uint256'}],name:'removeLiquidity',outputs:[{name:'amountA',type:'uint256'},{name:'amountB',type:'uint256'}],stateMutability:'nonpayable',type:'function'},
+    {inputs:[{name:'token',type:'address'},{name:'liquidity',type:'uint256'},{name:'amountTokenMin',type:'uint256'},{name:'amountETHMin',type:'uint256'},{name:'to',type:'address'},{name:'deadline',type:'uint256'}],name:'removeLiquidityETH',outputs:[{name:'amountToken',type:'uint256'},{name:'amountETH',type:'uint256'}],stateMutability:'nonpayable',type:'function'}
 ];
 
 const V2_FACTORY_ABI = [
-    {inputs:[{name:'tokenA',type:'address'},{name:'tokenB',type:'address'}],name:'getPair',outputs:[{name:'pair',type:'address'}],stateMutability:'view',type:'Function'}
+    {inputs:[{name:'tokenA',type:'address'},{name:'tokenB',type:'address'}],name:'getPair',outputs:[{name:'pair',type:'address'}],stateMutability:'view',type:'function'}
 ];
 
 const V2_PAIR_ABI = [
-    {inputs:[],name:'getReserves',outputs:[{name:'_reserve0',type:'uint112'},{name:'_reserve1',type:'uint112'},{name:'_blockTimestampLast',type:'uint32'}],stateMutability:'view',type:'Function'},
-    {inputs:[],name:'token0',outputs:[{name:'',type:'address'}],stateMutability:'view',type:'Function'},
-    {inputs:[],name:'totalSupply',outputs:[{name:'',type:'uint256'}],stateMutability:'view',type:'Function'},
-    {inputs:[{name:'owner',type:'address'}],name:'balanceOf',outputs:[{name:'',type:'uint256'}],stateMutability:'view',type:'Function'},
-    {inputs:[{name:'spender',type:'address'},{name:'value',type:'uint256'}],name:'approve',outputs:[{name:'',type:'bool'}],stateMutability:'nonpayable',type:'Function'},
-    {inputs:[{name:'owner',type:'address'},{name:'spender',type:'address'}],name:'allowance',outputs:[{name:'',type:'uint256'}],stateMutability:'view',type:'Function'}
+    {inputs:[],name:'getReserves',outputs:[{name:'_reserve0',type:'uint112'},{name:'_reserve1',type:'uint112'},{name:'_blockTimestampLast',type:'uint32'}],stateMutability:'view',type:'function'},
+    {inputs:[],name:'token0',outputs:[{name:'',type:'address'}],stateMutability:'view',type:'function'},
+    {inputs:[],name:'totalSupply',outputs:[{name:'',type:'uint256'}],stateMutability:'view',type:'function'},
+    {inputs:[{name:'owner',type:'address'}],name:'balanceOf',outputs:[{name:'',type:'uint256'}],stateMutability:'view',type:'function'},
+    {inputs:[{name:'spender',type:'address'},{name:'value',type:'uint256'}],name:'approve',outputs:[{name:'',type:'bool'}],stateMutability:'nonpayable',type:'function'},
+    {inputs:[{name:'owner',type:'address'},{name:'spender',type:'address'}],name:'allowance',outputs:[{name:'',type:'uint256'}],stateMutability:'view',type:'function'}
 ];
 
 const WTRX_ABI = [
-    {inputs:[],name:'deposit',outputs:[],stateMutability:'payable',type:'Function'},
-    {inputs:[{name:'wad',type:'uint256'}],name:'withdraw',outputs:[],stateMutability:'nonpayable',type:'Function'},
-    {inputs:[{name:'who',type:'address'}],name:'balanceOf',outputs:[{name:'',type:'uint256'}],stateMutability:'view',type:'Function'},
-    {inputs:[{name:'spender',type:'address'},{name:'value',type:'uint256'}],name:'approve',outputs:[{name:'',type:'bool'}],stateMutability:'nonpayable',type:'Function'},
-    {inputs:[{name:'owner',type:'address'},{name:'spender',type:'address'}],name:'allowance',outputs:[{name:'',type:'uint256'}],stateMutability:'view',type:'Function'},
-    {inputs:[],name:'symbol',outputs:[{name:'',type:'string'}],stateMutability:'view',type:'Function'},
-    {inputs:[],name:'decimals',outputs:[{name:'',type:'uint8'}],stateMutability:'view',type:'Function'}
+    {inputs:[],name:'deposit',outputs:[],stateMutability:'payable',type:'function'},
+    {inputs:[{name:'wad',type:'uint256'}],name:'withdraw',outputs:[],stateMutability:'nonpayable',type:'function'},
+    {inputs:[{name:'who',type:'address'}],name:'balanceOf',outputs:[{name:'',type:'uint256'}],stateMutability:'view',type:'function'},
+    {inputs:[{name:'spender',type:'address'},{name:'value',type:'uint256'}],name:'approve',outputs:[{name:'',type:'bool'}],stateMutability:'nonpayable',type:'function'},
+    {inputs:[{name:'owner',type:'address'},{name:'spender',type:'address'}],name:'allowance',outputs:[{name:'',type:'uint256'}],stateMutability:'view',type:'function'},
+    {inputs:[],name:'symbol',outputs:[{name:'',type:'string'}],stateMutability:'view',type:'function'},
+    {inputs:[],name:'decimals',outputs:[{name:'',type:'uint8'}],stateMutability:'view',type:'function'}
 ];
 
 const V3_FACTORY_ABI = [
-    {inputs:[{name:'tokenA',type:'address'},{name:'tokenB',type:'address'},{name:'fee',type:'uint24'}],name:'getPool',outputs:[{name:'pool',type:'address'}],stateMutability:'view',type:'Function'},
-    {inputs:[{name:'fee',type:'uint24'}],name:'feeAmountTickSpacing',outputs:[{name:'',type:'int24'}],stateMutability:'view',type:'Function'}
+    {inputs:[{name:'tokenA',type:'address'},{name:'tokenB',type:'address'},{name:'fee',type:'uint24'}],name:'getPool',outputs:[{name:'pool',type:'address'}],stateMutability:'view',type:'function'},
+    {inputs:[{name:'fee',type:'uint24'}],name:'feeAmountTickSpacing',outputs:[{name:'',type:'int24'}],stateMutability:'view',type:'function'}
 ];
 
 const V3_POOL_ABI = [
@@ -790,16 +790,16 @@ const V3_POOL_ABI = [
         {name:'sqrtPriceX96',type:'uint160'},{name:'tick',type:'int24'},{name:'observationIndex',type:'uint16'},
         {name:'observationCardinality',type:'uint16'},{name:'observationCardinalityNext',type:'uint16'},
         {name:'feeProtocol',type:'uint8'},{name:'unlocked',type:'bool'}
-    ],stateMutability:'view',type:'Function'},
-    {inputs:[],name:'liquidity',outputs:[{name:'',type:'uint128'}],stateMutability:'view',type:'Function'},
-    {inputs:[],name:'token0',outputs:[{name:'',type:'address'}],stateMutability:'view',type:'Function'},
-    {inputs:[],name:'token1',outputs:[{name:'',type:'address'}],stateMutability:'view',type:'Function'},
-    {inputs:[],name:'fee',outputs:[{name:'',type:'uint24'}],stateMutability:'view',type:'Function'},
-    {inputs:[],name:'tickSpacing',outputs:[{name:'',type:'int24'}],stateMutability:'view',type:'Function'}
+    ],stateMutability:'view',type:'function'},
+    {inputs:[],name:'liquidity',outputs:[{name:'',type:'uint128'}],stateMutability:'view',type:'function'},
+    {inputs:[],name:'token0',outputs:[{name:'',type:'address'}],stateMutability:'view',type:'function'},
+    {inputs:[],name:'token1',outputs:[{name:'',type:'address'}],stateMutability:'view',type:'function'},
+    {inputs:[],name:'fee',outputs:[{name:'',type:'uint24'}],stateMutability:'view',type:'function'},
+    {inputs:[],name:'tickSpacing',outputs:[{name:'',type:'int24'}],stateMutability:'view',type:'function'}
 ];
 
 const V3_QUOTER_ABI = [
-    {inputs:[{name:'tokenIn',type:'address'},{name:'tokenOut',type:'address'},{name:'fee',type:'uint24'},{name:'amountIn',type:'uint256'},{name:'sqrtPriceLimitX96',type:'uint160'}],name:'quoteExactInputSingle',outputs:[{name:'amountOut',type:'uint256'}],stateMutability:'nonpayable',type:'Function'}
+    {inputs:[{name:'tokenIn',type:'address'},{name:'tokenOut',type:'address'},{name:'fee',type:'uint24'},{name:'amountIn',type:'uint256'},{name:'sqrtPriceLimitX96',type:'uint160'}],name:'quoteExactInputSingle',outputs:[{name:'amountOut',type:'uint256'}],stateMutability:'nonpayable',type:'function'}
 ];
 
 const V3_ROUTER_ABI = [
@@ -807,40 +807,40 @@ const V3_ROUTER_ABI = [
         {name:'tokenIn',type:'address'},{name:'tokenOut',type:'address'},{name:'fee',type:'uint24'},
         {name:'recipient',type:'address'},{name:'deadline',type:'uint256'},{name:'amountIn',type:'uint256'},
         {name:'amountOutMinimum',type:'uint256'},{name:'sqrtPriceLimitX96',type:'uint160'}
-    ],name:'params',type:'tuple'}],name:'exactInputSingle',outputs:[{name:'amountOut',type:'uint256'}],stateMutability:'payable',type:'Function'}
+    ],name:'params',type:'tuple'}],name:'exactInputSingle',outputs:[{name:'amountOut',type:'uint256'}],stateMutability:'payable',type:'function'}
 ];
 
 const V3_POSITION_MANAGER_ABI = [
-    {inputs:[{name:'owner',type:'address'}],name:'balanceOf',outputs:[{name:'balance',type:'uint256'}],stateMutability:'view',type:'Function'},
-    {inputs:[{name:'owner',type:'address'},{name:'index',type:'uint256'}],name:'tokenOfOwnerByIndex',outputs:[{name:'tokenId',type:'uint256'}],stateMutability:'view',type:'Function'},
-    {inputs:[{name:'tokenId',type:'uint256'}],name:'ownerOf',outputs:[{name:'owner',type:'address'}],stateMutability:'view',type:'Function'},
+    {inputs:[{name:'owner',type:'address'}],name:'balanceOf',outputs:[{name:'balance',type:'uint256'}],stateMutability:'view',type:'function'},
+    {inputs:[{name:'owner',type:'address'},{name:'index',type:'uint256'}],name:'tokenOfOwnerByIndex',outputs:[{name:'tokenId',type:'uint256'}],stateMutability:'view',type:'function'},
+    {inputs:[{name:'tokenId',type:'uint256'}],name:'ownerOf',outputs:[{name:'owner',type:'address'}],stateMutability:'view',type:'function'},
     {inputs:[{name:'tokenId',type:'uint256'}],name:'positions',outputs:[
         {name:'nonce',type:'uint96'},{name:'operator',type:'address'},{name:'token0',type:'address'},
         {name:'token1',type:'address'},{name:'fee',type:'uint24'},{name:'tickLower',type:'int24'},
         {name:'tickUpper',type:'int24'},{name:'liquidity',type:'uint128'},
         {name:'feeGrowthInside0LastX128',type:'uint256'},{name:'feeGrowthInside1LastX128',type:'uint256'},
         {name:'tokensOwed0',type:'uint128'},{name:'tokensOwed1',type:'uint128'}
-    ],stateMutability:'view',type:'Function'},
-    {inputs:[{name:'token0',type:'address'},{name:'token1',type:'address'},{name:'fee',type:'uint24'},{name:'sqrtPriceX96',type:'uint160'}],name:'createAndInitializePoolIfNecessary',outputs:[{name:'pool',type:'address'}],stateMutability:'payable',type:'Function'},
+    ],stateMutability:'view',type:'function'},
+    {inputs:[{name:'token0',type:'address'},{name:'token1',type:'address'},{name:'fee',type:'uint24'},{name:'sqrtPriceX96',type:'uint160'}],name:'createAndInitializePoolIfNecessary',outputs:[{name:'pool',type:'address'}],stateMutability:'payable',type:'function'},
     {inputs:[{components:[
         {name:'token0',type:'address'},{name:'token1',type:'address'},{name:'fee',type:'uint24'},
         {name:'tickLower',type:'int24'},{name:'tickUpper',type:'int24'},
         {name:'amount0Desired',type:'uint256'},{name:'amount1Desired',type:'uint256'},
         {name:'amount0Min',type:'uint256'},{name:'amount1Min',type:'uint256'},
         {name:'recipient',type:'address'},{name:'deadline',type:'uint256'}
-    ],name:'params',type:'tuple'}],name:'mint',outputs:[{name:'tokenId',type:'uint256'},{name:'liquidity',type:'uint128'},{name:'amount0',type:'uint256'},{name:'amount1',type:'uint256'}],stateMutability:'payable',type:'Function'},
+    ],name:'params',type:'tuple'}],name:'mint',outputs:[{name:'tokenId',type:'uint256'},{name:'liquidity',type:'uint128'},{name:'amount0',type:'uint256'},{name:'amount1',type:'uint256'}],stateMutability:'payable',type:'function'},
     {inputs:[{components:[
         {name:'tokenId',type:'uint256'},{name:'amount0Desired',type:'uint256'},{name:'amount1Desired',type:'uint256'},
         {name:'amount0Min',type:'uint256'},{name:'amount1Min',type:'uint256'},{name:'deadline',type:'uint256'}
-    ],name:'params',type:'tuple'}],name:'increaseLiquidity',outputs:[{name:'liquidity',type:'uint128'},{name:'amount0',type:'uint256'},{name:'amount1',type:'uint256'}],stateMutability:'payable',type:'Function'},
+    ],name:'params',type:'tuple'}],name:'increaseLiquidity',outputs:[{name:'liquidity',type:'uint128'},{name:'amount0',type:'uint256'},{name:'amount1',type:'uint256'}],stateMutability:'payable',type:'function'},
     {inputs:[{components:[
         {name:'tokenId',type:'uint256'},{name:'liquidity',type:'uint128'},{name:'amount0Min',type:'uint256'},
         {name:'amount1Min',type:'uint256'},{name:'deadline',type:'uint256'}
-    ],name:'params',type:'tuple'}],name:'decreaseLiquidity',outputs:[{name:'amount0',type:'uint256'},{name:'amount1',type:'uint256'}],stateMutability:'payable',type:'Function'},
+    ],name:'params',type:'tuple'}],name:'decreaseLiquidity',outputs:[{name:'amount0',type:'uint256'},{name:'amount1',type:'uint256'}],stateMutability:'payable',type:'function'},
     {inputs:[{components:[
         {name:'tokenId',type:'uint256'},{name:'recipient',type:'address'},{name:'amount0Max',type:'uint128'},{name:'amount1Max',type:'uint128'}
-    ],name:'params',type:'tuple'}],name:'collect',outputs:[{name:'amount0',type:'uint256'},{name:'amount1',type:'uint256'}],stateMutability:'payable',type:'Function'},
-    {inputs:[{name:'tokenId',type:'uint256'}],name:'burn',outputs:[],stateMutability:'payable',type:'Function'}
+    ],name:'params',type:'tuple'}],name:'collect',outputs:[{name:'amount0',type:'uint256'},{name:'amount1',type:'uint256'}],stateMutability:'payable',type:'function'},
+    {inputs:[{name:'tokenId',type:'uint256'}],name:'burn',outputs:[],stateMutability:'payable',type:'function'}
 ];
 
 
@@ -850,7 +850,7 @@ const V3_POSITION_MANAGER_ABI = [
    State — PandaTool Nile DEX v2.0 (V2 + V3)
    https://pandatool.org | https://t.me/pandatool
    ================================================================ */
-let tronWeb = null, userAddress = null;
+let tronWeb = null, tronProvider = null, userAddress = null;
 let slippage = 0.5;
 let cachedWtrx = null;
 const tokenCache = {};
@@ -903,24 +903,69 @@ async function getWtrx() {
 }
 
 /* ================================================================
+   TronLink provider compatibility
+   ================================================================ */
+function resolveTronProvider() {
+    // Current TronLink API first; legacy objects remain as fallbacks.
+    if (window.tron && (window.tron.isTronLink || window.tron.tronWeb)) return window.tron;
+    if (window.tronLink && (window.tronLink.isTronLink || window.tronLink.tronWeb)) return window.tronLink;
+    return null;
+}
+
+function resolveInjectedTronWeb(provider = resolveTronProvider()) {
+    return (provider && provider.tronWeb) ||
+           (window.tron && window.tron.tronWeb) ||
+           (window.tronLink && window.tronLink.tronWeb) ||
+           window.tronWeb || null;
+}
+
+function validateTronWeb(instance) {
+    if (!instance || !instance.defaultAddress) throw new Error('TronWeb 尚未就绪');
+    const tb = instance.transactionBuilder;
+    if (!tb) throw new Error('当前钱包未提供 transactionBuilder');
+    if (typeof tb.triggerConstantContract !== 'function' && typeof tb.triggerSmartContract !== 'function') {
+        throw new Error('当前注入的 TronWeb 不完整，请更新 TronLink 或禁用冲突钱包扩展后刷新');
+    }
+    return instance;
+}
+
+async function authorizeTronProvider(provider) {
+    if (!provider || typeof provider.request !== 'function') throw new Error('未检测到 TronLink Provider');
+    try {
+        return await provider.request({method:'eth_requestAccounts'});
+    } catch (e) {
+        // Backward compatibility with old TronLink versions.
+        if (e && (e.code === 4200 || /unsupported|not support/i.test(String(e.message || e)))) {
+            return await provider.request({method:'tron_requestAccounts'});
+        }
+        throw e;
+    }
+}
+
+/* ================================================================
    Wallet
    ================================================================ */
 async function connectWallet() {
-    if (!window.tronLink) { showStatus('❌ 请先安装 TronLink 扩展', 'error'); return; }
+    tronProvider = resolveTronProvider();
+    if (!tronProvider) { showStatus('❌ 请先安装 TronLink 扩展', 'error'); return; }
     showStatus('⏳ 连接钱包...', 'info');
     try {
-        const res = await window.tronLink.request({method:'tron_requestAccounts'});
-        if (res.code===200) {
-            tronWeb = window.tronLink.tronWeb || window.tronWeb;
-            userAddress = tronWeb.defaultAddress.base58;
-            const btn = document.getElementById('connectWallet');
-            btn.textContent = '🟢 '+userAddress.slice(0,6)+'...'+userAddress.slice(-4);
-            btn.style.background = 'linear-gradient(135deg,#00ff88,#00cc66)';
-            showStatus('✅ 钱包已连接', 'success', 3000);
-            queryFromToken(); queryToToken();
-            queryV3Field('v3FromAddress','v3From','v3From'); queryV3Field('v3ToAddress','v3To','v3To');
-        } else showStatus('❌ 连接失败', 'error');
-    } catch(e) { showStatus('❌ '+e.message, 'error'); }
+        await authorizeTronProvider(tronProvider);
+        tronWeb = validateTronWeb(resolveInjectedTronWeb(tronProvider));
+        userAddress = tronWeb.defaultAddress.base58;
+        if (!userAddress) throw new Error('TronLink 未返回当前账户');
+        const btn = document.getElementById('connectWallet');
+        btn.textContent = '🟢 '+userAddress.slice(0,6)+'...'+userAddress.slice(-4);
+        btn.style.background = 'linear-gradient(135deg,#00ff88,#00cc66)';
+        console.info('TronWeb capabilities', {
+            version: tronWeb.version || 'unknown',
+            triggerConstantContract: typeof tronWeb.transactionBuilder?.triggerConstantContract,
+            triggerSmartContract: typeof tronWeb.transactionBuilder?.triggerSmartContract
+        });
+        showStatus('✅ 钱包已连接', 'success', 3000);
+        queryFromToken(); queryToToken();
+        queryV3Field('v3FromAddress','v3From','v3From'); queryV3Field('v3ToAddress','v3To','v3To');
+    } catch(e) { showStatus('❌ '+(e.message || e), 'error'); }
 }
 
 /* ================================================================
@@ -1771,7 +1816,7 @@ async function v3EnsureTokenReady(info,spender,amount){
 }
 async function v3GetPool(tokenA,tokenB,fee){
     const f=await tronWeb.contract(V3_FACTORY_ABI,CONFIG.V3_FACTORY);
-    const r=await f.getPool(tokenA,tokenB,fee).call();
+    const r=await f.getPool(tokenA,tokenB,fee).call({_isConstant:true});
     return v3ToBase58(r);
 }
 async function v3GetTickSpacing(fee){
@@ -1781,7 +1826,7 @@ async function v3GetTickSpacing(fee){
 async function v3ReadPool(pool){
     const c=await tronWeb.contract(V3_POOL_ABI,pool);
     const [slot,liq,t0,t1,fee,spacing]=await Promise.all([
-        c.slot0().call(),c.liquidity().call(),c.token0().call(),c.token1().call(),c.fee().call(),c.tickSpacing().call()
+        c.slot0().call({_isConstant:true}),c.liquidity().call({_isConstant:true}),c.token0().call({_isConstant:true}),c.token1().call({_isConstant:true}),c.fee().call({_isConstant:true}),c.tickSpacing().call({_isConstant:true})
     ]);
     return {
         pool, sqrtPriceX96:v3Big(v3Result(slot,'sqrtPriceX96',0)), tick:v3Num(v3Result(slot,'tick',1)),
@@ -1842,14 +1887,14 @@ async function updateV3SwapQuote(){
         document.getElementById('v3SwapPool').textContent=pool;
         const amountIn=parseUnits(amt,fi.decimals);
         const q=await tronWeb.contract(V3_QUOTER_ABI,CONFIG.V3_QUOTER);
-        const r=await q.quoteExactInputSingle(input,output,v3SwapFee,amountIn.toString(),'0').call();
+        const r=await q.quoteExactInputSingle(input,output,v3SwapFee,amountIn.toString(),'0').call({_isConstant:true});
         const out=v3Big(r); if(out<=0n)throw new Error('报价为 0');
         v3SwapQuoteRaw=out;
         const disp=formatUnits(out,ti.decimals,6); document.getElementById('v3ToAmount').value=disp;
         document.getElementById('v3SwapRate').textContent=`1 ${fi.symbol} ≈ ${(Number(disp)/Number(amt)).toFixed(6)} ${ti.symbol}`;
         document.getElementById('v3SwapMin').textContent=`${formatUnits(applySlip(out,slippage),ti.decimals,6)} ${ti.symbol}`;
         btn.disabled=false;
-    }catch(e){console.warn('V3 quote:',e);clear();document.getElementById('v3SwapRate').textContent='报价失败';}
+    }catch(e){console.warn('V3 quote:',e);clear();const msg=String(e?.message||e||'未知错误');document.getElementById('v3SwapRate').textContent='报价失败';showStatus('❌ V3 报价失败：'+msg,'error',10000);}
 }
 async function executeV3Swap(){
     if(!tronWeb||!userAddress){showStatus('❌ 请先连接钱包','error');return;}
@@ -2252,17 +2297,22 @@ function setup(){
 // PandaTool DEX — entry point (pandatool.org)
 async function init(){
     setup();
-    if(window.tronLink&&window.tronLink.ready){
-        tronWeb=window.tronLink.tronWeb||window.tronWeb;
-        if(tronWeb&&tronWeb.defaultAddress&&tronWeb.defaultAddress.base58){
+    tronProvider=resolveTronProvider();
+    const injected=resolveInjectedTronWeb(tronProvider);
+    if(injected && injected.ready && injected.defaultAddress?.base58){
+        try {
+            tronWeb=validateTronWeb(injected);
             userAddress=tronWeb.defaultAddress.base58;
             const btn=document.getElementById('connectWallet');
             btn.textContent='🟢 '+userAddress.slice(0,6)+'...'+userAddress.slice(-4);
             btn.style.background='linear-gradient(135deg,#00ff88,#00cc66)';
             showStatus('✅ 已自动连接','success',3000);
             setTimeout(()=>{queryFromToken();queryToToken();queryV3Field('v3FromAddress','v3From','v3From');queryV3Field('v3ToAddress','v3To','v3To');},800);
+        } catch(e) {
+            console.warn('Auto-connect TronWeb validation:',e);
+            showStatus('⚠️ '+(e.message||e),'warning',10000);
         }
-    } else if(!window.tronLink){
+    } else if(!tronProvider){
         showStatus('⚠️ 请安装 TronLink 钱包扩展','warning',10000);
     }
 }
