@@ -1873,6 +1873,61 @@ function v3EncodeSqrtPriceX96(humanPrice,dec0,dec1){
 function v3FeeText(fee){return (Number(fee)/10000).toFixed(Number(fee)===100?2:2)+'%';}
 function v3Deadline(){return Math.floor(Date.now()/1000)+1200;}
 
+
+function v3DecodeNodeMessage(value){
+    if(!value) return '';
+    const raw=String(value);
+    try{
+        if(/^[0-9a-fA-F]+$/.test(raw) && raw.length%2===0){
+            const bytes=raw.match(/.{1,2}/g).map(h=>parseInt(h,16));
+            return new TextDecoder().decode(new Uint8Array(bytes)).replace(/\0+$/,'');
+        }
+    }catch(e){}
+    try{return atob(raw);}catch(e){}
+    return raw;
+}
+
+/**
+ * SunSwap V3 Quoter is intentionally nonpayable (same design as Uniswap V3).
+ * TronWeb ContractMethod.call() rejects nonpayable ABI methods before RPC execution,
+ * so the quote must be simulated through wallet/triggerconstantcontract directly.
+ */
+async function v3QuoteExactInputSingle(tokenIn,tokenOut,fee,amountIn){
+    const tb=tronWeb && tronWeb.transactionBuilder;
+    if(!tb || typeof tb.triggerConstantContract!=='function'){
+        throw new Error('当前 TronWeb 不支持 triggerConstantContract');
+    }
+
+    const parameters=[
+        {type:'address',value:tokenIn},
+        {type:'address',value:tokenOut},
+        {type:'uint24',value:String(fee)},
+        {type:'uint256',value:String(amountIn)},
+        {type:'uint160',value:'0'}
+    ];
+
+    const result=await tb.triggerConstantContract(
+        CONFIG.V3_QUOTER,
+        'quoteExactInputSingle(address,address,uint24,uint256,uint160)',
+        {callValue:0,feeLimit:CONFIG.FEE_LIMIT},
+        parameters,
+        userAddress
+    );
+
+    const ok=result && result.result && result.result.result!==false;
+    const values=result && (result.constant_result || result.constantResult);
+    if(!ok || !values || !values.length){
+        const reason=v3DecodeNodeMessage(
+            result?.result?.message || result?.result?.resMessage || result?.message || result?.resMessage
+        );
+        throw new Error(reason || 'Quoter 模拟调用未返回 constant_result');
+    }
+
+    const hex=String(values[0]||'').replace(/^0x/i,'');
+    if(!hex || !/^[0-9a-fA-F]+$/.test(hex)) throw new Error('Quoter 返回值格式异常');
+    return BigInt('0x'+hex);
+}
+
 async function updateV3SwapQuote(){
     const btn=document.getElementById('v3SwapBtn');
     const clear=()=>{v3SwapQuoteRaw=0n;document.getElementById('v3ToAmount').value='';document.getElementById('v3SwapPool').textContent='-';document.getElementById('v3SwapRate').textContent='-';document.getElementById('v3SwapMin').textContent='-';btn.disabled=true;};
@@ -1886,15 +1941,23 @@ async function updateV3SwapQuote(){
         if(v3IsZeroAddress(pool)){clear();document.getElementById('v3SwapPool').textContent='该 Fee Tier 无 Pool';return;}
         document.getElementById('v3SwapPool').textContent=pool;
         const amountIn=parseUnits(amt,fi.decimals);
-        const q=await tronWeb.contract(V3_QUOTER_ABI,CONFIG.V3_QUOTER);
-        const r=await q.quoteExactInputSingle(input,output,v3SwapFee,amountIn.toString(),'0').call({_isConstant:true});
-        const out=v3Big(r); if(out<=0n)throw new Error('报价为 0');
+        const out=await v3QuoteExactInputSingle(input,output,v3SwapFee,amountIn);
+        if(out<=0n)throw new Error('报价为 0');
         v3SwapQuoteRaw=out;
         const disp=formatUnits(out,ti.decimals,6); document.getElementById('v3ToAmount').value=disp;
         document.getElementById('v3SwapRate').textContent=`1 ${fi.symbol} ≈ ${(Number(disp)/Number(amt)).toFixed(6)} ${ti.symbol}`;
         document.getElementById('v3SwapMin').textContent=`${formatUnits(applySlip(out,slippage),ti.decimals,6)} ${ti.symbol}`;
         btn.disabled=false;
-    }catch(e){console.warn('V3 quote:',e);clear();const msg=String(e?.message||e||'未知错误');document.getElementById('v3SwapRate').textContent='报价失败';showStatus('❌ V3 报价失败：'+msg,'error',10000);}
+    }catch(e){
+        console.warn('V3 quote:',e);
+        v3SwapQuoteRaw=0n;
+        document.getElementById('v3ToAmount').value='';
+        document.getElementById('v3SwapRate').textContent='报价失败';
+        document.getElementById('v3SwapMin').textContent='-';
+        btn.disabled=true;
+        const msg=String(e?.message||e||'未知错误');
+        showStatus('❌ V3 报价失败：'+msg,'error',10000);
+    }
 }
 async function executeV3Swap(){
     if(!tronWeb||!userAddress){showStatus('❌ 请先连接钱包','error');return;}
