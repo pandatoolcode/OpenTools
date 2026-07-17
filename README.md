@@ -54,6 +54,9 @@ PandaTool Open Tools 是 PandaTool 旗下的开源前端工具仓库，主要用
 |------|------|
 | V2 Router | TMn1qrmYUMSTXo9babrJLzepKZoPC7M6Sy |
 | V2 Factory | THomLGMLhAjMecQf9FQjbZ8a1RtwsZLrGE |
+| V3 Router | TFkswj6rUfK3cQtFGzungCkNXxD2UCpEVD |
+| V3 Factory | TUTGcsGDRScK1gsDPMELV2QZxeESWb1Gac |
+| V3 Quoter | TUcM2gkpWEJxBpkweLdVoRp6DAUsw2vWR6 |
 | WTRX | TNUC9Qb1rRpN8CkFCRX1AsHwbvLFYMnP3q |
 | 测试 USDT | TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf |
 | 测试 USDC | TEMVynQpntMqkPxP6wXTW2K7e4sM3cRmWz |
