@@ -1,6 +1,6 @@
 # TRON Nile DEX Tool
 
-这是一个由一键发币平台[PandaTool](https://pandatool.org)开发的，基于 **TRON Nile 测试网** 和 **SunSwap V2** 协议构建的 DEX 前端工具，用于演示 TRON 生态下的链上交互流程。
+这是一个由一键发币平台[PandaTool](https://pandatool.org)开发的，基于 **TRON Nile 测试网** 和 **SunSwap V2/V3** 协议构建的 DEX 前端工具，用于演示 TRON 生态下的链上交互流程。
 
 ---
 
@@ -32,6 +32,9 @@ https://pandatoolcode.github.io/OpenTools/TRON_Nile_DEX/
 |------|------|
 | V2 Router | TMn1qrmYUMSTXo9babrJLzepKZoPC7M6Sy |
 | V2 Factory | THomLGMLhAjMecQf9FQjbZ8a1RtwsZLrGE |
+| V3 Router | TFkswj6rUfK3cQtFGzungCkNXxD2UCpEVD |
+| V3 Factory | TUTGcsGDRScK1gsDPMELV2QZxeESWb1Gac |
+| V3 Quoter | TUcM2gkpWEJxBpkweLdVoRp6DAUsw2vWR6 |
 | WTRX | TNUC9Qb1rRpN8CkFCRX1AsHwbvLFYMnP3q |
 | 测试 USDT | TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf |
 | 测试 USDC | TEMVynQpntMqkPxP6wXTW2K7e4sM3cRmWz |
